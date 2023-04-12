@@ -1,84 +1,45 @@
 use std::fs;
+use std::ops::Deref;
 use std::process::{Child, Command};
 use std::path::{Path, PathBuf};
 use std::env;
 use sysinfo::{Pid, Process, ProcessExt, Uid, System, SystemExt};
-use users::get_current_uid;
 
 fn main() {
 
     let config = Config {
-        default_socket_name: "server-3",
-        default_tmp_dir: "/tmp/",
+        default_socket: "server",
+        tmp_dir: "/tmp/",
     };
-
-
-    println!("All the sockets are in: {:?}", sockets_dir(&config));
-    // println!("Temp Dir is: {:?}", temp_dir(&config));
-    // println!("You are: {:?}", get_current_uid());
-    //let daemeon = launch_emacs_daemon(None, &config);
-    //println!("{:?}", daemeon);
-
-    println!("Daemon sockets are");
-
-    for item in &daemon_sockets(&config) {
-        println!("{:#?}", item);
-    }
-
     
-    // let s = System::new_all();
-    // println!("emacs|Emacs processes");
-    // let running_daemons =
-    //     s.processes_by_name("emacs")
-    //         .chain(s.processes_by_name("Emacs"))
-    //         .map(|p| DaemonProcess::from_sys_process(p))
-    //         .collect::<Vec<_>>();
-
-    // println!("{:#?}", running_daemons);
-
-    let state = State::get();
-    println!("All clients: {:#?}", state.all_clients() );
-    println!("All daemons: {:#?}", state.all_daemons() );
-    
-
+    list_daemons(&config);
 }
 
 
-#[derive(Debug)]
-struct State {
-    emacs_processes: Vec<EmacsProcess>,
+fn get_daemons() -> Vec<ProcessInfo> {
+    System::new_all().processes().iter()
+        .filter(|(_, p)| p.name().to_lowercase().starts_with("emacs"))
+        .filter(|(_, p)| match p.cmd().get(1) {
+            None => false,
+            Some(args) => args.contains("daemon"),
+        })
+        .map(|(_, p)| ProcessInfo::from_sys_process(p) )
+        .collect()
 }
 
-impl State {
-    fn get() -> Self {
-        let system = System::new_all();
-        Self {
-            emacs_processes: system.processes()
-                .iter().filter(|(_, p)| p.name()
-                    .to_lowercase()
-                    .starts_with("emacs")
-                )
-                .map(|(_, p)| EmacsProcess::from_sys_process(p))
-                .collect::<Vec<_>>()
-        }
-    }
-
-    fn all_clients(&self) -> Vec<EmacsProcess> {
-        self.emacs_processes.iter().filter(|p| p.is_client() ).cloned().collect()
-    }
-
-    fn all_daemons(&self) -> Vec<EmacsProcess> {
-        self.emacs_processes.iter().filter(|p| p.is_daemon()).cloned().collect()
-    }
+fn list_daemons(config: &Config) {
+    let daemons = get_daemons();
     
+    for daemon in &daemons {
+        println!("{}", daemon.show(&config));
+    }
 }
-
 
 
 #[derive(Debug)]
 struct Config {
-    default_socket_name: &'static str,
-    default_tmp_dir: &'static str,
+    default_socket: &'static str,
+    tmp_dir: &'static str,
 }
 
 
@@ -90,7 +51,7 @@ struct Socket {
 
 
 #[derive(Clone, Debug)]
-struct EmacsProcess {
+struct ProcessInfo {
     pid: Pid,
     user_id: Option<Uid>,
     name: String,
@@ -99,18 +60,7 @@ struct EmacsProcess {
     cwd: PathBuf,
 }
 
-impl EmacsProcess {
-    fn is_client(&self) -> bool {
-        self.name == "emacsclient"
-    }
-
-    fn is_daemon(&self) -> bool {
-        match self.command.get(1) {
-            None => false,
-            Some(args) => args.contains("daemon"),
-        }
-    }
-    
+impl ProcessInfo {
     fn from_sys_process(p: &Process) -> Self {
         Self {
             pid: p.pid(),
@@ -121,24 +71,64 @@ impl EmacsProcess {
             cwd: p.cwd().into(),
         }
     }
-}
 
+    fn pid(&self) -> Pid {
+        self.pid
+    }
 
+    fn socket_name(&self) -> Option<String> {
+        let name = self.command.get(1)?
+            .split_once('=')?
+            .1
+            .split('\n')
+            .last()
+            .to_owned()?
+            .to_owned();
+        Some(name)
+    }
 
-fn sockets_dir(config: &Config) -> PathBuf {
-    PathBuf::from(
-        env::var("TMPDIR")
-            .unwrap_or(config.default_tmp_dir.to_string())
-    ).join(
-        format!("emacs{}", get_current_uid())
-    )
-}
+    fn socket_file(&self, config: &Config) -> Result<PathBuf, ()> {
+        match self.socket_name() {
+            Some(name) => {
+                match &self.user_id {
+                    Some(uid) => {
+                        let socket_path = PathBuf::from(config.tmp_dir)
+                            .join(format!("emacs{}", uid.deref() ))
+                            .join(name);
+                        match socket_path.exists() {
+                            true => Ok(socket_path),
+                            false => {
+                                eprintln!("socket file at {:?} does not actually exist, wtf!", socket_path);
+                                Err(())
+                            }
+                        }
+                    },
+                    None => {
+                        eprintln!("No user ID present for ....");
+                        Err(())
+                    },
+                }
+            },
+            None => {
+                eprintln!("no socket!!??");
+                Err(())
+            }
+        }
+    }
 
-
-fn daemon_sockets(config: &Config) -> Result<Vec<PathBuf>, std::io::Error> {
-    fs::read_dir(&sockets_dir(config))?
-        .map(|item| item.map(|entry| entry.path()))
-        .collect::<Result<Vec<_>, std::io::Error>>()
+    fn show(&self, config: &Config) -> String {
+        format!(
+            "{:<10} [{}, {}]",
+            self.socket_name().expect("daemon process with no socket"),
+            format!("Pid: {:>8}", format!("{}", self.pid())),
+            format!("Socket: {:<24} ",
+                self.socket_file(config)
+                .expect("problem with socket file...")
+                .to_str()
+                .expect("path has invalid chars")
+            ),
+        )
+    }
 }
 
 
@@ -146,26 +136,9 @@ fn daemon_sockets(config: &Config) -> Result<Vec<PathBuf>, std::io::Error> {
 fn launch_emacs_daemon(name: Option<&str>, config: &Config) -> std::io::Result<Child> {
     let daemon_name = match name {
         Some(name) => name,
-        None => &config.default_socket_name,
+        None => &config.default_socket,
     };
     Command::new("emacs")
         .arg(format!("--daemon={}", daemon_name))
         .spawn()
 }
-
-fn emacs_daemon_processes() {
-    unimplemented!()
-}
-
-/*
- clienten
-   daemon | -d
-     new [NAME]
-     Create a new daemon process. If nothing passed, use default name ("server"); if NAME passed, use this as the socket name.
-     kill NAME | --all
-       kill emacs server NAME; or kill all emacs processes with --all
-     show
-       list active Emacs daemons
-
-
-*/
