@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 use super::config::Config;
 use super::daemons::{list_daemons, launch_daemon, kill_daemon};
-use super::clients::launch_client;
+use super::client;
 
 
 #[derive(Debug, Parser)]
@@ -74,10 +74,9 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
             }
         },
         Commands::Connect{ daemon } => {
-            match launch_client(daemon, &config) {
+            match client::connect(daemon, &config) {
                 Ok(client) => {
                     println!("Launched Emacs client {:?}", client);
-                    std::thread::sleep(std::time::Duration::from_secs(5));
                 },
                 Err(e) => eprint!("Error launching client {e}"),
             }

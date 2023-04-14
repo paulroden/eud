@@ -1,4 +1,4 @@
 pub mod config;
-pub mod clients;
+pub mod client;
 pub mod daemons;
 pub mod cli;

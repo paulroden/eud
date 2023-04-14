@@ -42,7 +42,7 @@ impl ClientProcess {
 }
 
 
-pub fn launch_client(daemon_name: &str, config: &Config) -> Result<Child, std::io::Error> {
+pub fn connect(daemon_name: &str, config: &Config) -> Result<Child, std::io::Error> {
     match get_daemons().iter().find(|&p| p.socket_name == daemon_name) {
         Some(daemon) => {
             let socket = daemon.socket_file(config)?;
@@ -55,6 +55,8 @@ pub fn launch_client(daemon_name: &str, config: &Config) -> Result<Child, std::i
                     "Emacs daemon named {:?} does not exist.\nActive daemons are: {:?}",
                     daemon_name,
                     list_daemons(&config).unwrap(),
-            ))),
+                )
+            )
+        ),
     }
 }
