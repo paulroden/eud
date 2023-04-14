@@ -42,7 +42,6 @@ impl ClientProcess {
 }
 
 
-
 pub fn launch_client(daemon_name: &str, config: &Config) -> Result<Child, std::io::Error> {
     match get_daemons().iter().find(|&p| p.socket_name == daemon_name) {
         Some(daemon) => {

@@ -6,7 +6,6 @@ use sysinfo::{Pid, Process, ProcessExt, Uid, Signal, System, SystemExt};
 use crate::config::Config;
 
 
-
 #[derive(Clone, Debug)]
 pub struct DaemonProcess {
     pub pid: Pid,
