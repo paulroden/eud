@@ -1,6 +1,6 @@
 use std::ops::Deref;
 use std::process::{Child, Command, Stdio};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::env;
 use sysinfo::{Pid, Process, ProcessExt, Uid, Signal, System, SystemExt};
 
@@ -26,6 +26,14 @@ fn main() {
             println!("stderr:\n{:#?}", String::from_utf8_lossy(output.stderr.as_slice()));
         },
         Err(e) => eprintln!("No daemon process started.. wtf?\n{e}"),
+    }
+
+    match launch_client("test-daemon-3", &config) {
+        Ok(client) => {
+            println!("Launched Emacs client {:?}", client);
+            std::thread::sleep(std::time::Duration::from_secs(5));
+        },
+        Err(e) => eprint!("Error launching client {e}"),
     }
    
     // `kill`
@@ -92,54 +100,25 @@ struct DaemonProcess {
 
 impl DaemonProcess {
     fn from_sys_process(p: &Process) -> Option<Self> {
-        let socket_name = p.cmd().get(1)?
+        // The socket name needs to be derived from the command arguments
+        // passed to emacs. These will be of the form:
+        // --bg-daemon=\xxx,y\012/name//or/socket/path
+        // The result of `p.cmd()` is therefore parsed to extract the
+        // "/name//or/socket/path" portion into a `Path`, to extract the
+        // socket filename 
+        let socket_name = Path::new(p.cmd().get(1)?
             .split_once('=')?
             .1
             .split('\n')
-            .last();
-
+            .last()?
+        ).file_name()?.to_str();
+        
         Some(Self {
             pid: p.pid(),
             user_id: p.user_id().cloned(),
             name: p.name().into(),
             socket_name: socket_name?.to_owned(),
         })
-    }
-
-    fn show(&self, config: &Config) -> String {
-        format!(
-            "{:<14} [{}, {}]",
-            self.socket_name,
-            format!("Pid: {:>8}", format!("{}", self.pid)),
-            format!("Socket: {:<30} ",
-                self.socket_file(config)
-                .expect("problem with socket file...")
-                .to_str()
-                .expect("path has invalid chars")
-            ),
-        )
-    }
-
-    // TODO: work through error paths
-    fn socket_file(&self, config: &Config) -> Result<PathBuf, ()> {
-        match &self.user_id {
-            Some(uid) => {
-                let socket_path = PathBuf::from(config.tmp_dir)
-                    .join(format!("emacs{}", uid.deref() ))
-                    .join(self.socket_name.clone());
-                match socket_path.exists() {
-                    true => Ok(socket_path),
-                    false => {
-                        eprintln!("socket file at {:?} does not actually exist, wtf!", socket_path);
-                        Err(())
-                    }
-                }
-            },
-            None => {
-                eprintln!("No user ID present for ....");
-                Err(())
-            },
-        }
     }
 
     fn kill(&self) -> Result<Pid, std::io::Error> {
@@ -161,11 +140,97 @@ impl DaemonProcess {
                 ),
             },
             None => Err(
-                std::io::Error::new(std::io::ErrorKind::Other,
-                format!("Error trying to send kill signal to Emacs daemon. No process found with with Pid {}.", pid)
+                std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    format!("Error trying to send kill signal to Emacs daemon. No process found with with Pid {}.", pid)
                 )
             )
         }
+    }
+
+    fn show(&self, config: &Config) -> String {
+        format!(
+            "{:<14} [{}, {}]",
+            self.socket_name,
+            format!("Pid: {:>8}", format!("{}", self.pid)),
+            format!("Socket: {:<30} ",
+                self.socket_file(config)
+                .expect("problem with socket file...")
+                .to_str()
+                .expect("path has invalid chars")
+            ),
+        )
+    }
+
+    fn socket_file(&self, config: &Config) -> Result<PathBuf, std::io::Error> {
+        match &self.user_id {
+            Some(uid) => {
+                let socket_path = PathBuf::from(config.tmp_dir)
+                    .join(format!("emacs{}", uid.deref() ))
+                    .join(self.socket_name.clone());
+                match socket_path.exists() {
+                    true => Ok(socket_path),
+                    false => Err(std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        format!("Daemon socket at path {:?} does not exist.", socket_path)
+                    )),
+                }
+            },
+            None => Err(std::io::Error::new(std::io::ErrorKind::Other,
+                format!("Unexpected! No user ID present for Emacs daemon process:\n{:?}", self)
+            )),
+        }
+    }
+}
+
+
+#[derive(Clone, Debug)]
+struct ClientProcess {
+    daemon_socket: PathBuf,
+    alternate_editor: Option<String>,
+    create_new_frame: bool,
+}
+
+impl ClientProcess {
+    fn with_daemon(socket_name: impl Into<PathBuf>) -> Self {
+        Self {
+            daemon_socket: socket_name.into(),
+            alternate_editor: None,
+            create_new_frame: true,
+         }
+    }
+
+    fn spawn(&self) -> Result<Child, std::io::Error> {
+        Command::new("emacsclient")
+            .arg(
+                format!("--socket-name={}", self.daemon_socket.display())
+            )
+            .arg(
+                match self.create_new_frame {
+                    true => format!("--create-frame"),
+                    false => format!("--reuse-frame"),
+                }
+            )
+           .spawn()
+    }
+}
+
+
+
+fn launch_client(daemon_name: &str, config: &Config) -> Result<Child, std::io::Error> {
+    match get_daemons().iter().find(|&p| p.socket_name == daemon_name) {
+        Some(daemon) => {
+            let socket = daemon.socket_file(config)?;
+            ClientProcess::with_daemon(socket).spawn()
+        } 
+        None => Err(
+            std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!(
+                    "Emacs daemon named {:?} does not exist.\nActive daemons are: {:?}",
+                    daemon_name,
+                    list_daemons(&config).unwrap(),
+            ))),
     }
 }
 
