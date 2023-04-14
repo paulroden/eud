@@ -12,7 +12,7 @@ pub fn get_daemons() -> Vec<DaemonProcess> {
             None => false,
             Some(args) => args.contains("daemon"),
         })
-        .map(|(_, p)| DaemonProcess::from_sys_process(p) )
+        .map(|(_, p)| DaemonProcess::from_sys_process(p))
         .flatten()
         .collect()
 }
@@ -169,9 +169,15 @@ impl ClientProcess {
                 format!("--socket-name={}", self.daemon_socket.display())
             )
             .arg(
-                match self.create_new_frame {
-                    true => format!("--create-frame"),
+                match &self.create_new_frame {
+                    true  => format!("--create-frame"),
                     false => format!("--reuse-frame"),
+                }
+            )
+            .arg(
+                match &self.alternate_editor {
+                    Some(editor) => format!("--alternate_editor={}", editor),
+                    None => "".to_string(),
                 }
             )
            .spawn()
