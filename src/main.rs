@@ -1,11 +1,7 @@
-use eud::{
-    Config,
-    list_daemons,
-    active_daemons_names,
-    launch_daemon,
-    launch_client,
-    kill_daemon
-};
+use eud::config::Config;
+use eud::clients::launch_client;
+use eud::daemons::{list_daemons, active_daemons_names, launch_daemon, kill_daemon};
+
 
 fn main() {
 
@@ -49,3 +45,4 @@ fn main() {
     // ...
     list_daemons(&config).unwrap();
 }
+

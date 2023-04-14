@@ -3,61 +3,19 @@ use std::process::{Child, Command, Stdio};
 use std::path::{Path, PathBuf};
 use sysinfo::{Pid, Process, ProcessExt, Uid, Signal, System, SystemExt};
 
+use crate::config::Config;
 
-pub fn get_daemons() -> Vec<DaemonProcess> {
-    System::new_all().processes().iter()
-        .filter(|(_, p)| p.name().to_lowercase().starts_with("emacs"))
-        .filter(|(_, p)| match p.cmd().get(1) {
-            None => false,
-            Some(args) => args.contains("daemon"),
-        })
-        .map(|(_, p)| DaemonProcess::from_sys_process(p))
-        .flatten()
-        .collect()
-}
-
-
-#[derive(Debug)]
-pub struct Config {
-    default_socket: &'static str,
-    tmp_dir: &'static str,
-}
-
-impl Config {
-    pub fn new(default_socket: &'static str, tmp_dir: &'static str) -> Self {
-        Self {
-            default_socket,
-            tmp_dir,
-        }
-    }
-}
-
-
-pub fn list_daemons(config: &Config) -> Result<(), std::io::Error> {
-    println!("Current Emacs daemon instances:");
-    get_daemons().iter().for_each(|daemon| {
-        println!("{}", daemon.show(&config));
-    });
-    Ok(())
-}
-
-
-pub fn active_daemons_names() -> Vec<String> {
-    get_daemons().iter()
-        .map(|d| d.socket_name.clone())
-        .collect()
-}
 
 
 #[derive(Clone, Debug)]
 pub struct DaemonProcess {
-    pid: Pid,
-    user_id: Option<Uid>,
-    socket_name: String,
+    pub pid: Pid,
+    pub user_id: Option<Uid>,
+    pub socket_name: String,
 }
 
 impl DaemonProcess {
-    fn from_sys_process(p: &Process) -> Option<Self> {
+    pub(crate) fn from_sys_process(p: &Process) -> Option<Self> {
         // The socket name needs to be derived from the command arguments
         // passed to emacs. These will be of the form:
         // --bg-daemon=\xxx,y\012/name//or/socket/path
@@ -78,7 +36,7 @@ impl DaemonProcess {
         })
     }
 
-    fn kill(&self) -> Result<Pid, std::io::Error> {
+    pub(crate) fn kill(&self) -> Result<Pid, std::io::Error> {
         let system = System::new_all();
         let pid = self.pid;
         match system.process(pid) {
@@ -105,7 +63,7 @@ impl DaemonProcess {
         }
     }
 
-    fn show(&self, config: &Config) -> String {
+    pub(crate) fn show(&self, config: &Config) -> String {
         format!(
             "{:<14} [{}, {}]",
             self.socket_name,
@@ -119,7 +77,7 @@ impl DaemonProcess {
         )
     }
 
-    fn socket_file(&self, config: &Config) -> Result<PathBuf, std::io::Error> {
+    pub(crate) fn socket_file(&self, config: &Config) -> Result<PathBuf, std::io::Error> {
         match &self.user_id {
             Some(uid) => {
                 let socket_path = PathBuf::from(config.tmp_dir)
@@ -138,64 +96,38 @@ impl DaemonProcess {
             )),
         }
     }
-}
-
-
-#[derive(Clone, Debug)]
-pub struct ClientProcess {
-    daemon_socket: PathBuf,
-    alternate_editor: Option<String>,
-    create_new_frame: bool,
-}
-
-impl ClientProcess {
-    fn with_daemon(socket_name: impl Into<PathBuf>) -> Self {
-        Self {
-            daemon_socket: socket_name.into(),
-            alternate_editor: None,
-            create_new_frame: true,
-         }
     }
 
-    fn spawn(&self) -> Result<Child, std::io::Error> {
-        Command::new("emacsclient")
-            .arg(
-                format!("--socket-name={}", self.daemon_socket.display())
-            )
-            .arg(
-                match &self.create_new_frame {
-                    true  => format!("--create-frame"),
-                    false => format!("--reuse-frame"),
-                }
-            )
-            .arg(
-                match &self.alternate_editor {
-                    Some(editor) => format!("--alternate_editor={}", editor),
-                    None => "".to_string(),
-                }
-            )
-           .spawn()
-    }
+
+pub fn get_daemons() -> Vec<DaemonProcess> {
+    System::new_all().processes().iter()
+        .filter(|(_, p)| p.name().to_lowercase().starts_with("emacs"))
+        .filter(|(_, p)| match p.cmd().get(1) {
+            Some(args) => args.contains("daemon"),
+            None => false,
+        })
+        .map(|(_, p)| DaemonProcess::from_sys_process(p))
+        .flatten()
+        .collect()
 }
 
 
-
-pub fn launch_client(daemon_name: &str, config: &Config) -> Result<Child, std::io::Error> {
-    match get_daemons().iter().find(|&p| p.socket_name == daemon_name) {
-        Some(daemon) => {
-            let socket = daemon.socket_file(config)?;
-            ClientProcess::with_daemon(socket).spawn()
-        } 
-        None => Err(
-            std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!(
-                    "Emacs daemon named {:?} does not exist.\nActive daemons are: {:?}",
-                    daemon_name,
-                    list_daemons(&config).unwrap(),
-            ))),
-    }
+pub fn list_daemons(config: &Config) -> Result<(), std::io::Error> {
+    println!("Current Emacs daemon instances:");
+    get_daemons().iter().for_each(|daemon| {
+        println!("{}", daemon.show(&config));
+    });
+    Ok(())
 }
+
+
+pub fn active_daemons_names() -> Vec<String> {
+    get_daemons().iter()
+        .map(|d| d.socket_name.clone())
+        .collect()
+}
+
+
 
 
 /// should return a type which captures either: Child process for a newly-spawned Emacs daemon, or a Process capturing the 
@@ -232,3 +164,5 @@ pub fn kill_daemon(name: &str) ->  Result<(), std::io::Error> {
         ),
     }
 }
+
+
