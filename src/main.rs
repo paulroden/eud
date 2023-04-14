@@ -1,4 +1,3 @@
-use std::fs;
 use std::ops::Deref;
 use std::process::{Child, Command};
 use std::path::PathBuf;
@@ -27,7 +26,6 @@ fn main() {
         },
     }
     
-    println!("supported signals: {:?}", System::SUPPORTED_SIGNALS);
 }
 
 
@@ -52,14 +50,10 @@ struct Config {
 
 
 fn list_daemons(config: &Config) -> Result<(), std::io::Error> {
-    let daemons = get_daemons();
-
     println!("Current Emacs daemon instances:");
-    
-    for daemon in &daemons {
+    get_daemons().iter().for_each(|daemon| {
         println!("{}", daemon.show(&config));
-    }
-    
+    });
     Ok(())
 }
 
@@ -89,17 +83,12 @@ impl DaemonProcess {
             .split('\n')
             .last();
 
-        match socket_name {
-            Some(socket_name) => Some(
-                Self {
-                    pid: p.pid(),
-                    user_id: p.user_id().cloned(),
-                    name: p.name().into(),
-                    socket_name: socket_name.to_owned(),
-                }
-            ),
-            None => None,
-        }
+        Some(Self {
+            pid: p.pid(),
+            user_id: p.user_id().cloned(),
+            name: p.name().into(),
+            socket_name: socket_name?.to_owned(),
+        })
     }
 
     fn show(&self, config: &Config) -> String {
@@ -178,7 +167,7 @@ fn launch_emacs_daemon(name: Option<&str>, config: &Config) -> std::io::Result<C
 
 
 fn kill_daemon(name: &str) ->  Result<(), std::io::Error> {
-    match daemons.iter().find(|&p| p.socket_name == name) {
+    match get_daemons().iter().find(|&p| p.socket_name == name) {
         Some(daemon) => {
             match daemon.kill() {
                 Ok(pid) => {
