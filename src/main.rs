@@ -1,5 +1,5 @@
 use std::ops::Deref;
-use std::process::{Child, Command};
+use std::process::{Child, Command, Stdio};
 use std::path::PathBuf;
 use std::env;
 use sysinfo::{Pid, Process, ProcessExt, Uid, Signal, System, SystemExt};
@@ -10,23 +10,37 @@ fn main() {
         default_socket: "server",
         tmp_dir: "/tmp/",
     };
-    
+
+    // `list`
     list_daemons(&config).unwrap();
 
     println!("{:?}", active_daemons_names());
 
-    // let new_daemon = launch_emacs_daemon(Some("test-daemon"), &config);
+    // `new`
+    let new_daemon = launch_emacs_daemon(Some("test-daemon-3"), &config);
 
-
-    match kill_daemon("test-daemon-2") {
+    match new_daemon {
+        Ok(d) => {
+            let output = d.wait_with_output().expect("what? no outouts??");
+            println!("stdout:\n{:#?}\n", String::from_utf8_lossy(output.stdout.as_slice()) );
+            println!("stderr:\n{:#?}", String::from_utf8_lossy(output.stderr.as_slice()));
+        },
+        Err(e) => eprintln!("No daemon process started.. wtf?\n{e}"),
+    }
+   
+    // `kill`
+    match kill_daemon("test-daemon-3") {
         Ok(_) => println!("Killed it."),
         Err(e) => {
             eprintln!("{}", e);
             list_daemons(&config).unwrap();
         },
     }
-    
+
+    // ...
+    list_daemons(&config).unwrap();
 }
+
 
 
 fn get_daemons() -> Vec<DaemonProcess> {
@@ -56,6 +70,7 @@ fn list_daemons(config: &Config) -> Result<(), std::io::Error> {
     });
     Ok(())
 }
+
 
 fn active_daemons_names() -> Vec<String> {
     get_daemons().iter()
@@ -105,6 +120,7 @@ impl DaemonProcess {
         )
     }
 
+    // TODO: work through error paths
     fn socket_file(&self, config: &Config) -> Result<PathBuf, ()> {
         match &self.user_id {
             Some(uid) => {
@@ -162,8 +178,11 @@ fn launch_emacs_daemon(name: Option<&str>, config: &Config) -> std::io::Result<C
     };
     Command::new("emacs")
         .arg(format!("--daemon={}", daemon_name))
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
         .spawn()
 }
+// TODO: (above) look into std::process::Commmand::{current_dir, envs}
 
 
 fn kill_daemon(name: &str) ->  Result<(), std::io::Error> {
@@ -185,4 +204,3 @@ fn kill_daemon(name: &str) ->  Result<(), std::io::Error> {
         ),
     }
 }
-
