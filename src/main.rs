@@ -1,9 +1,23 @@
 use eud::config::Config;
 use eud::clients::launch_client;
 use eud::daemons::{list_daemons, active_daemons_names, launch_daemon, kill_daemon};
+use eud::cli::cli;
 
 
 fn main() {
+
+    let config = Config::new("server", "/tmp/");
+
+    match cli(&config) {
+        Ok(_) => (),
+        Err(e) => eprintln!("{}", e),
+    };
+    
+}
+
+
+
+fn old_main() {
 
     let config = Config::new("server", "/tmp/");
 
