@@ -28,6 +28,7 @@ fn main() {
         Err(e) => eprintln!("No daemon process started.. wtf?\n{e}"),
     }
 
+    // `connect`
     match launch_client("test-daemon-3", &config) {
         Ok(client) => {
             println!("Launched Emacs client {:?}", client);
