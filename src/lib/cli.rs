@@ -1,5 +1,5 @@
-use clap::{Args, Parser, Subcommand, ValueEnum};
-use super::config::{Config};
+use clap::{Parser, Subcommand};
+use super::config::Config;
 use super::daemons::{list_daemons, launch_daemon, kill_daemon};
 use super::clients::launch_client;
 
@@ -15,20 +15,24 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Commands {
-    /// List active daemons
+    
+    /// list active daemons
     #[command()]
     List,
 
+    // launch new daemon
     #[command(arg_required_else_help = true)]
     New {
         name: String,
     },
 
+    // kill daemon
     #[command(arg_required_else_help = true)]
     Kill {
         daemon: String,
     },
-
+    
+    // connect Emacs client to daemon
     #[command(arg_required_else_help = true)]
     Connect {
         daemon: String,
@@ -37,9 +41,8 @@ enum Commands {
 
 
 pub fn cli(config: &Config) -> Result<(), std::io::Error> {
-    let cl = Cli::parse();
 
-    match &cl.command {
+    match &Cli::parse().command {
         Commands::List => {
             list_daemons(&config)?;
         },
@@ -63,10 +66,10 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
         },
         Commands::Kill{ daemon } => {
             match kill_daemon(daemon) {
-                Ok(_) => println!("Killed it."),
+                Ok(_) => println!("Killed it."), // TODO: clarify.
                 Err(e) => {
                     eprintln!("{}", e);
-                    list_daemons(&config).unwrap();
+                    list_daemons(&config)?;
                 },
             }
         },
@@ -79,8 +82,6 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
                 Err(e) => eprint!("Error launching client {e}"),
             }
         }
-        
     }
-
     Ok(())
 }
