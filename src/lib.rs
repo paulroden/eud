@@ -1,7 +1,6 @@
 use std::ops::Deref;
 use std::process::{Child, Command, Stdio};
 use std::path::{Path, PathBuf};
-use std::env;
 use sysinfo::{Pid, Process, ProcessExt, Uid, Signal, System, SystemExt};
 
 
@@ -54,11 +53,7 @@ pub fn active_daemons_names() -> Vec<String> {
 pub struct DaemonProcess {
     pid: Pid,
     user_id: Option<Uid>,
-    name: String,
     socket_name: String,
-    // executable: PathBuf,
-    // command: Vec<String>,
-    // cwd: PathBuf,
 }
 
 impl DaemonProcess {
@@ -79,7 +74,6 @@ impl DaemonProcess {
         Some(Self {
             pid: p.pid(),
             user_id: p.user_id().cloned(),
-            name: p.name().into(),
             socket_name: socket_name?.to_owned(),
         })
     }
