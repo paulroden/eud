@@ -75,9 +75,7 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
         },
         Commands::Connect{ daemon } => {
             match client::connect(daemon, &config) {
-                Ok(client) => {
-                    println!("Launched Emacs client {:?}", client);
-                },
+                Ok(client) => println!("Launched Emacs client {:?}", client),
                 Err(e) => eprint!("Error launching client {e}"),
             }
         }
