@@ -130,17 +130,14 @@ pub(crate) fn launch_new(name: Option<&str>, config: &Config) -> std::io::Result
         .stderr(Stdio::piped())
         .spawn()
 }
-// TODO: (above) look into std::process::Commmand::{current_dir, envs}
+// TODO: (above) look into std::process::Command::{current_dir, envs}
 
 
-pub(crate) fn kill_by_name(name: &str) ->  Result<(), std::io::Error> {
+pub(crate) fn kill_by_name(name: &str) ->  Result<Pid, std::io::Error> {
     match get_all().iter().find(|&p| p.socket_name == name) {
         Some(daemon) => {
             match daemon.kill() {
-                Ok(pid) => {
-                    println!("{}", pid);
-                    Ok(())
-                },
+                Ok(pid) => Ok(pid),
                 Err(e) => Err(std::io::Error::new(std::io::ErrorKind::Other, e)),
             }
         },
