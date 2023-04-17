@@ -2,7 +2,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use crate::config::Config;
-use crate::daemons::{get_daemons, list_daemons};
+use crate::daemons;
 
 
 #[derive(Clone, Debug)]
@@ -60,7 +60,7 @@ pub fn connect(
     file: impl Into<PathBuf>,
     config: &Config
 ) -> Result<Child, std::io::Error> {
-    match get_daemons().iter().find(|&p| p.socket_name == daemon_name) {
+    match daemons::get_all().iter().find(|&p| p.socket_name == daemon_name) {
         Some(daemon) => {
             let socket = daemon.socket_file(config)?;
             let file_path = file.into();
@@ -69,18 +69,24 @@ pub fn connect(
                 false => Err(
                     std::io::Error::new(
                         std::io::ErrorKind::NotFound,
-                        format!("File path {} does not exist.", file_path.display())
+                        format!(
+                            "File path {} does not exist.",
+                            file_path.display()
+                        )
                     )
                 ),
             }
         },
         None => Err(
             std::io::Error::new(
-                std::io::ErrorKind::Other,
+                std::io::ErrorKind::NotFound,
                 format!(
-                    "Emacs daemon named {:?} does not exist.\nActive daemons are: {:?}",
+                    "Emacs daemon named `{}` does not exist.\nActive daemons are:\n{}\n",
                     daemon_name,
-                    list_daemons(&config).unwrap(),
+                    daemons::get_all().iter()
+                    .map(|d| d.show(&config))
+                    .collect::<Vec<String>>()
+                    .join("\n"),
                 )
             )
         ),

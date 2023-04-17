@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use clap::{Parser, Subcommand};
 use super::config::Config;
-use super::daemons::{list_daemons, launch_daemon, kill_daemon};
+use super::daemons;
 use super::client;
 
 
@@ -43,15 +43,23 @@ enum Commands {
     },
 }
 
+pub fn list_daemons(config: &Config) -> Result<(), std::io::Error> {
+    println!("Current Emacs daemon instances:");
+    daemons::get_all().iter().for_each(|daemon| {
+        println!("{}", daemon.show(&config));
+    });
+    Ok(())
+}
 
 pub fn cli(config: &Config) -> Result<(), std::io::Error> {
 
     match &Cli::parse().command {
         Commands::List => {
+            println!("Current Emacs daemon instances:");
             list_daemons(&config)?;
         },
         Commands::New{ name } => {
-            let new_daemon = launch_daemon(Some(name), &config);
+            let new_daemon = daemons::launch_new(Some(name), &config);
 
             match new_daemon {
                 Ok(daemon) => {
@@ -69,7 +77,7 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
             }
         },
         Commands::Kill{ daemon } => {
-            match kill_daemon(daemon) {
+            match daemons::kill_by_name(daemon) {
                 Ok(_) => println!("Killed it."), // TODO: clarify.
                 Err(e) => {
                     eprintln!("{}", e);
@@ -92,7 +100,7 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
                         String::from_utf8_lossy(output.stderr.as_slice())
                     );
                 },
-                Err(e) => eprint!("Error launching client {e}"),
+                Err(e) => eprint!("Error launching client:\n{e}"),
             }
         }
     }

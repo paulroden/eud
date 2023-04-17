@@ -98,7 +98,7 @@ impl DaemonProcess {
     }
 
 
-pub fn get_daemons() -> Vec<DaemonProcess> {
+pub(crate) fn get_all() -> Vec<DaemonProcess> {
     System::new_all().processes().iter()
         .filter(|(_, p)| p.name().to_lowercase().starts_with("emacs"))
         .filter(|(_, p)| match p.cmd().get(1) {
@@ -111,26 +111,15 @@ pub fn get_daemons() -> Vec<DaemonProcess> {
 }
 
 
-pub fn list_daemons(config: &Config) -> Result<(), std::io::Error> {
-    println!("Current Emacs daemon instances:");
-    get_daemons().iter().for_each(|daemon| {
-        println!("{}", daemon.show(&config));
-    });
-    Ok(())
-}
-
-
-pub fn active_daemons_names() -> Vec<String> {
-    get_daemons().iter()
+pub(crate) fn active_daemons_names() -> Vec<String> {
+    get_all().iter()
         .map(|d| d.socket_name.clone())
         .collect()
 }
 
 
-
-
 /// should return a type which captures either: Child process for a newly-spawned Emacs daemon, or a Process capturing the 
-pub fn launch_daemon(name: Option<&str>, config: &Config) -> std::io::Result<Child> {
+pub(crate) fn launch_new(name: Option<&str>, config: &Config) -> std::io::Result<Child> {
     let daemon_name = match name {
         Some(name) => name,
         None => &config.default_socket,
@@ -144,8 +133,8 @@ pub fn launch_daemon(name: Option<&str>, config: &Config) -> std::io::Result<Chi
 // TODO: (above) look into std::process::Commmand::{current_dir, envs}
 
 
-pub fn kill_daemon(name: &str) ->  Result<(), std::io::Error> {
-    match get_daemons().iter().find(|&p| p.socket_name == name) {
+pub(crate) fn kill_by_name(name: &str) ->  Result<(), std::io::Error> {
+    match get_all().iter().find(|&p| p.socket_name == name) {
         Some(daemon) => {
             match daemon.kill() {
                 Ok(pid) => {
@@ -163,5 +152,4 @@ pub fn kill_daemon(name: &str) ->  Result<(), std::io::Error> {
         ),
     }
 }
-
 
