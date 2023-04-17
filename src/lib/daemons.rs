@@ -153,3 +153,6 @@ pub(crate) fn kill_by_name(name: &str) ->  Result<(), std::io::Error> {
     }
 }
 
+pub(crate) fn kill_all() -> Vec<Result<Pid, std::io::Error>> {
+    get_all().iter().map(|daemon| daemon.kill()).collect()
+}

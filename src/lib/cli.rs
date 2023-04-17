@@ -21,19 +21,19 @@ enum Commands {
     #[command()]
     List,
 
-    // launch new daemon
+    /// launch new daemon
     #[command(arg_required_else_help = true)]
     New {
         name: String,
     },
 
-    // kill daemon
+    /// kill daemon with socket NAME, or kill all active daemons with --all
     #[command(arg_required_else_help = true)]
     Kill {
         daemon: String,
     },
     
-    // connect Emacs client to daemon; visits path at FILE
+    /// connect Emacs client to daemon; visits path at FILE
     #[command(arg_required_else_help = true)]
     Connect {
         #[arg(required = true)]
@@ -43,6 +43,7 @@ enum Commands {
     },
 }
 
+
 pub fn list_daemons(config: &Config) -> Result<(), std::io::Error> {
     println!("Current Emacs daemon instances:");
     daemons::get_all().iter().for_each(|daemon| {
@@ -50,6 +51,7 @@ pub fn list_daemons(config: &Config) -> Result<(), std::io::Error> {
     });
     Ok(())
 }
+
 
 pub fn cli(config: &Config) -> Result<(), std::io::Error> {
 
@@ -83,8 +85,8 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
                     eprintln!("{}", e);
                     list_daemons(&config)?;
                 },
-            }
-        },
+            }                
+        }
         Commands::Connect{ daemon, file } => {
             let visit_file = file.clone().unwrap_or(std::env::current_dir()?);
             match client::connect(daemon, visit_file, &config) {
