@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use clap::{Parser, Subcommand};
 use super::config::Config;
 use super::daemons::{list_daemons, launch_daemon, kill_daemon};
@@ -32,10 +33,13 @@ enum Commands {
         daemon: String,
     },
     
-    // connect Emacs client to daemon
+    // connect Emacs client to daemon; visits path at FILE
     #[command(arg_required_else_help = true)]
     Connect {
+        #[arg(required = true)]
         daemon: String,
+        #[arg(required = false)]
+        file: Option<PathBuf>,
     },
 }
 
@@ -50,8 +54,8 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
             let new_daemon = launch_daemon(Some(name), &config);
 
             match new_daemon {
-                Ok(d) => {
-                    let output = d.wait_with_output().expect("what? no outouts??");
+                Ok(daemon) => {
+                    let output = daemon.wait_with_output().expect("what? no outouts??");
                     println!(
                         "stdout:\n{:#?}\n",
                         String::from_utf8_lossy(output.stdout.as_slice())
@@ -73,9 +77,21 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
                 },
             }
         },
-        Commands::Connect{ daemon } => {
-            match client::connect(daemon, &config) {
-                Ok(client) => println!("Launched Emacs client {:?}", client),
+        Commands::Connect{ daemon, file } => {
+            let visit_file = file.clone().unwrap_or(std::env::current_dir()?);
+            match client::connect(daemon, visit_file, &config) {
+                Ok(client) => {
+                    println!("Launched Emacs client {:?}", client);
+                    let output = client.wait_with_output().expect("what? no outputs??");
+                    println!(
+                        "stdout:\n{:#?}\n",
+                        String::from_utf8_lossy(output.stdout.as_slice())
+                    );
+                    println!(
+                        "stderr:\n{:#?}",
+                        String::from_utf8_lossy(output.stderr.as_slice())
+                    );
+                },
                 Err(e) => eprint!("Error launching client {e}"),
             }
         }
