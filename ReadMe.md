@@ -1,3 +1,12 @@
+# eudaemon
+
+**E**macs **U**ser **D**aemons
+
+A kind spirit to help with managing Emacs client and server processes.
+
+(A _very, very_ early work in progress 👼👹⚠)
+
+
 ## Usage
 
 ```
@@ -9,6 +18,22 @@ where:
 
 `new NAME` creates a new Emacs daemon using a socket called NAME
 
-`connect [NAME]` creates a new Emacs client process connected to the socket called NAME; if NAME does not already exist, an Emacs daemon process is created called NAME
+`connect NAME FILE` creates a new Emacs client process (i.e. `emacsclient`) connected to the socket called NAME and visits FILE with Emacs; if no FILE is passed, Emacs will visit the working directory in `dired` mode. Exits and displays an error if FILE does not exist if a daemon process with socket NAME does not exist.
 
-`kill NAME` sends a kill (?) signal to the Emacs daemon process with socket NAME, or with `--all` sends the kill signal to all Emacs daemon processes.
+`kill NAME` sends a TERM signal (15) to the Emacs daemon process with socket NAME,
+
+(TODO: or with `--all` sends the kill signal to all Emacs daemon processes)
+
+
+
+### TODOs
+
+[ ] `emacsclient` processes to be spawned in background.
+
+[ ] correct exit codes on error
+
+[ ] tokio for spawning child processes and reading asynchronously from them
+
+[ ] `kill --all` flag
+
+[ ] given the name, we should really ensure this works with [Doom Emacs](https://github.com/doomemacs/doomemacs)
