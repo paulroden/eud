@@ -30,7 +30,7 @@ enum Commands {
     /// kill daemon with socket NAME, or kill all active daemons with --all
     #[command(arg_required_else_help = true)]
     Kill {
-        daemon: String,
+        daemon_name: String,
     },
     
     /// connect Emacs client to daemon; visits path at FILE
@@ -68,9 +68,13 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
                 Err(e) => eprintln!("No daemon process started.. wtf?\n{e}"),
             }
         },
-        Commands::Kill{ daemon } => {
-            match daemons::kill_by_name(daemon) {
-                Ok(_) => println!("Killed it."), // TODO: clarify.
+        Commands::Kill{ daemon_name } => {
+            match daemons::kill_by_name(daemon_name) {
+                Ok(pid) => println!(
+                    "Killed Emacs daemon '{}' [Pid: {} ]",
+                    daemon_name,
+                    pid
+                ),
                 Err(e) => {
                     eprintln!("{}", e);
                     list_daemons(&config)?;
