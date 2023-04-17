@@ -44,20 +44,10 @@ enum Commands {
 }
 
 
-pub fn list_daemons(config: &Config) -> Result<(), std::io::Error> {
-    println!("Current Emacs daemon instances:");
-    daemons::get_all().iter().for_each(|daemon| {
-        println!("{}", daemon.show(&config));
-    });
-    Ok(())
-}
-
-
 pub fn cli(config: &Config) -> Result<(), std::io::Error> {
 
     match &Cli::parse().command {
         Commands::List => {
-            println!("Current Emacs daemon instances:");
             list_daemons(&config)?;
         },
         Commands::New{ name } => {
@@ -106,5 +96,14 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
             }
         }
     }
+    Ok(())
+}
+
+
+pub fn list_daemons(config: &Config) -> Result<(), std::io::Error> {
+    println!("Current Emacs daemon instances:");
+    daemons::get_all().iter().for_each(|daemon| {
+        println!("{}", daemon.show(&config));
+    });
     Ok(())
 }
