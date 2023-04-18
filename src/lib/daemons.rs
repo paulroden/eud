@@ -76,7 +76,10 @@ impl DaemonProcess {
         )
     }
 
-    pub(crate) fn socket_file(&self, config: &Config) -> Result<PathBuf, std::io::Error> {
+    pub(crate) fn socket_file(
+        &self,
+        config: &Config
+    ) -> Result<PathBuf, std::io::Error> {
         match &self.user_id {
             Some(uid) => {
                 let socket_path = PathBuf::from(config.tmp_dir)
@@ -84,18 +87,28 @@ impl DaemonProcess {
                     .join(self.socket_name.clone());
                 match socket_path.exists() {
                     true => Ok(socket_path),
-                    false => Err(std::io::Error::new(
-                        std::io::ErrorKind::Other,
-                        format!("Daemon socket at path {:?} does not exist.", socket_path)
-                    )),
+                    false => Err(
+                        std::io::Error::new(
+                            std::io::ErrorKind::Other,
+                            format!(
+                                "Daemon socket at path {:?} does not exist.",
+                                socket_path
+                            )
+                        )
+                    ),
                 }
             },
-            None => Err(std::io::Error::new(std::io::ErrorKind::Other,
-                format!("Unexpected! No user ID present for Emacs daemon process:\n{:?}", self)
-            )),
+            None => Err(
+                std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    format!(
+                        "Unexpected! No user ID present for Emacs daemon process:\n{:?}",
+                        self)
+                )
+            ),
         }
     }
-    }
+}
 
 
 pub(crate) fn get_all() -> Vec<DaemonProcess> {

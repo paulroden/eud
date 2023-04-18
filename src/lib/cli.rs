@@ -64,7 +64,8 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
 
             match new_daemon {
                 Ok(daemon) => {
-                    let output = daemon.wait_with_output().expect("what? no outouts??");
+                    let output = daemon
+                        .wait_with_output().expect("what? no outouts??");
                     println!(
                         "stdout:\n{:#?}\n",
                         String::from_utf8_lossy(output.stdout.as_slice())
@@ -98,13 +99,14 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
                     }
                 }
             }
-        }
+        },
         Commands::Connect{ daemon, file } => {
             let visit_file = file.clone().unwrap_or(std::env::current_dir()?);
             match client::connect(daemon, visit_file, &config) {
                 Ok(client) => {
                     println!("Launched Emacs client {:?}", client);
-                    let output = client.wait_with_output().expect("what? no outputs??");
+                    let output = client
+                        .wait_with_output().expect("what? no outputs??");
                     println!(
                         "stdout:\n{:#?}\n",
                         String::from_utf8_lossy(output.stdout.as_slice())
@@ -116,7 +118,7 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
                 },
                 Err(e) => eprint!("Error launching client:\n{e}"),
             }
-        }
+        },
     }
     Ok(())
 }
