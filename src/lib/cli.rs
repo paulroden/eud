@@ -34,7 +34,9 @@ enum Commands {
     /// kill daemon with socket NAME, or kill all active daemons with --all
     #[command(arg_required_else_help = true)]
     Kill {
-        daemon_name: String,
+        #[arg(long = "all", default_value_t = false)]
+        all: bool,
+        daemon_name: Option<String>,
     },
     
     /// connect Emacs client to daemon; visits path at FILE
@@ -75,18 +77,27 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
                 Err(e) => eprintln!("No daemon process started.. wtf?\n{e}"),
             }
         },
-        Commands::Kill{ daemon_name } => {
-            match daemons::kill_by_name(daemon_name) {
-                Ok(pid) => println!(
-                    "Killed Emacs daemon '{}' [Pid: {} ]",
-                    daemon_name,
-                    pid
-                ),
-                Err(e) => {
-                    eprintln!("{}", e);
-                    list_daemons(&config)?;
-                },
-            }                
+        Commands::Kill{ all, daemon_name } => {
+            if *all {
+                for result in daemons::kill_all() {
+                    match result {
+                        Ok(pid) => println!("Killed Emacs daemon with Pid {}", pid),
+                        Err(e)  => eprintln!(
+                            "Error trying to kill Emacs daemon process:\n{e}"
+                        ),
+                    }
+                }
+            } else {
+                if let Some(name) = daemon_name {
+                    match daemons::kill_by_name(name) {
+                        Ok(pid) => println!("Killed Emacs daemon '{name}' [Pid: {pid} ]"),
+                        Err(e) => {
+                            eprintln!("{}", e);
+                            list_daemons(&config)?;
+                        },
+                    }
+                }
+            }
         }
         Commands::Connect{ daemon, file } => {
             let visit_file = file.clone().unwrap_or(std::env::current_dir()?);
