@@ -19,7 +19,10 @@ enum Commands {
     
     /// list active daemons
     #[command()]
-    List,
+    List {
+        #[arg(short = '1', default_value_t = false)]
+        short: bool,
+    },
 
     /// launch new daemon
     #[command()]
@@ -47,8 +50,11 @@ enum Commands {
 pub fn cli(config: &Config) -> Result<(), std::io::Error> {
 
     match &Cli::parse().command {
-        Commands::List => {
-            list_daemons(&config)?;
+        Commands::List { short } => {
+            match short {
+                true  => list_daemons_short(),
+                false => list_daemons(&config)?,
+            }
         },
         Commands::New{ name } => {
             let new_daemon = daemons::launch_new(name, &config);
@@ -116,4 +122,9 @@ pub fn list_daemons(config: &Config) -> Result<(), std::io::Error> {
         }
     }
     Ok(())
+}
+
+pub fn list_daemons_short() -> () {
+    daemons::active_daemons_names().iter()
+        .for_each(|name| println!("{name}"))
 }
