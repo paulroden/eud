@@ -105,9 +105,15 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
 
 
 pub fn list_daemons(config: &Config) -> Result<(), std::io::Error> {
-    println!("Current Emacs daemon instances:");
-    daemons::get_all().iter().for_each(|daemon| {
-        println!("{}", daemon.show(&config));
-    });
+    let extant_daemons = daemons::get_all();
+    match extant_daemons.len() {
+        0 => println!("No Emacs daemon processes are running."),
+        _ => {
+            println!("Current Emacs daemon instances:");
+            extant_daemons.iter().for_each(|daemon| {
+                println!("{}", daemon.show(&config));
+            });
+        }
+    }
     Ok(())
 }
