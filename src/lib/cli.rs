@@ -20,6 +20,7 @@ enum Commands {
     /// list active daemons
     #[command()]
     List {
+        /// list active daemons's names only, one per line
         #[arg(short = '1', default_value_t = false)]
         short: bool,
     },
