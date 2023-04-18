@@ -59,7 +59,7 @@ pub fn connect(
     daemon_name: &str,
     file: impl Into<PathBuf>,
     config: &Config
-) -> Result<Child, std::io::Error> {
+) -> std::io::Result<Child> {
     match daemons::get_all().iter().find(|&p| p.socket_name == daemon_name) {
         Some(daemon) => {
             let socket = daemon.socket_file(config)?;
