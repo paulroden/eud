@@ -30,13 +30,10 @@ where:
 
 [ ] config via file and env (via monoidal overlay)
 
-[ ] `emacsclient` processes to be spawned in background.
-
-[ ] correct exit codes on error
-
-[ ] tokio for spawning child processes and reading asynchronously from them
+[ ] `tokio::process` for spawning child processes and reading asynchronously from them
 
 [ ] check and, when necessary, clean up redundant socket files in `TMPDIR` (safely)
 
-[ ] given the name, we should really ensure this works with [Doom Emacs](https://github.com/doomemacs/doomemacs)
+[ ] reasonable exit codes on error?
 
+[ ] given the name, we should really ensure this works with [Doom Emacs](https://github.com/doomemacs/doomemacs)
