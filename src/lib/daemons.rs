@@ -118,11 +118,10 @@ pub(crate) fn active_daemons_names() -> Vec<String> {
 }
 
 
-/// should return a type which captures either: Child process for a newly-spawned Emacs daemon, or a Process capturing the 
-pub(crate) fn launch_new(name: Option<&str>, config: &Config) -> std::io::Result<Child> {
+pub(crate) fn launch_new(name: &Option<String>, config: &Config) -> std::io::Result<Child> {
     let daemon_name = match name {
         Some(name) => name,
-        None => &config.default_socket,
+        None => config.default_socket,
     };
     Command::new("emacs")
         .arg(format!("--daemon={}", daemon_name))

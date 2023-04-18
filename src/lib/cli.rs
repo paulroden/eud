@@ -22,9 +22,9 @@ enum Commands {
     List,
 
     /// launch new daemon
-    #[command(arg_required_else_help = true)]
+    #[command()]
     New {
-        name: String,
+        name: Option<String>,
     },
 
     /// kill daemon with socket NAME, or kill all active daemons with --all
@@ -51,7 +51,7 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
             list_daemons(&config)?;
         },
         Commands::New{ name } => {
-            let new_daemon = daemons::launch_new(Some(name), &config);
+            let new_daemon = daemons::launch_new(name, &config);
 
             match new_daemon {
                 Ok(daemon) => {
