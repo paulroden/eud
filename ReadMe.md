@@ -32,6 +32,8 @@ where:
 
 [ ] `tokio::process` for spawning child processes and reading asynchronously from them
 
+[ ] tests de unidad!
+
 [ ] check and, when necessary, clean up redundant socket files in `TMPDIR` (safely)
 
 [ ] reasonable exit codes on error?
