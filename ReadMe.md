@@ -28,14 +28,15 @@ where:
 
 ### TODOs
 
+[ ] config via file and env (via monoidal overlay)
+
 [ ] `emacsclient` processes to be spawned in background.
 
 [ ] correct exit codes on error
 
 [ ] tokio for spawning child processes and reading asynchronously from them
 
-[ ] `kill --all` flag
+[ ] check and, when necessary, clean up redundant socket files in `TMPDIR` (safely)
 
 [ ] given the name, we should really ensure this works with [Doom Emacs](https://github.com/doomemacs/doomemacs)
 
-[ ] check and, when necessary, clean up redundant socket files in TMP (safely)
