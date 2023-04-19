@@ -67,11 +67,11 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
                     let output = daemon
                         .wait_with_output().expect("what? no outouts??");
                     println!(
-                        "stdout:\n{:#?}\n",
+                        "stdout:\n{}\n",
                         String::from_utf8_lossy(output.stdout.as_slice())
                     );
                     println!(
-                        "stderr:\n{:#?}",
+                        "stderr:\n{}",
                         String::from_utf8_lossy(output.stderr.as_slice())
                     );
                 },
@@ -108,11 +108,11 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
                     let output = client
                         .wait_with_output().expect("what? no outputs??");
                     println!(
-                        "stdout:\n{:#?}\n",
+                        "stdout:\n{}\n",
                         String::from_utf8_lossy(output.stdout.as_slice())
                     );
                     println!(
-                        "stderr:\n{:#?}",
+                        "stderr:\n{}",
                         String::from_utf8_lossy(output.stderr.as_slice())
                     );
                 },
