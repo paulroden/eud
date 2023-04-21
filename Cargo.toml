@@ -19,6 +19,7 @@ rustflags = ["-Clink-arg=-fuse-ld=lld"]
 clap = { version = "4.2.1", features=[ "derive" ] }
 config = "0.13.3"
 sysinfo = "0.28.4"
+tokio = { version = "1.27.0", features = ["process"] }
 
 
 # stuff you need:

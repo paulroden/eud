@@ -1,6 +1,7 @@
 use std::fs;
 use std::path::PathBuf;
-use std::process::{Child, Command, Stdio};
+use std::process::Stdio;
+use std::process::{Child, Command};
 use crate::config::Config;
 use crate::daemons;
 
@@ -80,14 +81,20 @@ pub fn connect(
         None => Err(
             std::io::Error::new(
                 std::io::ErrorKind::NotFound,
-                format!(
-                    "Emacs daemon named `{}` does not exist.\nActive daemons are:\n{}\n",
-                    daemon_name,
-                    daemons::get_all().iter()
-                    .map(|d| d.show(&config))
-                    .collect::<Vec<String>>()
-                    .join("\n"),
-                )
+                {
+                    let extant_daemons = daemons::get_all();
+                    match extant_daemons.len() {
+                        0 => format!("No Emacs daemons are currently running.\n"),
+                        _ => format!(
+                            "Emacs daemon named `{}` does not exist.\nActive daemons are:\n{}\n",
+                            daemon_name,
+                            daemons::get_all().iter()
+                            .map(|d| d.show(&config))
+                            .collect::<Vec<String>>()
+                            .join("\n"),
+                        )
+                    }
+                }
             )
         ),
     }
