@@ -104,7 +104,7 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
             let visit_file = file.clone().unwrap_or(std::env::current_dir()?);
             match client::connect(daemon, visit_file, &config) {
                 Ok(client) => {
-                    println!("Launched Emacs client {:?}", client);
+                    println!("Launching Emacs client connected to '{}' ...", daemon);
                     let output = client
                         .wait_with_output().expect("what? no outputs??");
                     println!(
