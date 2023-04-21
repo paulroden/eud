@@ -78,7 +78,7 @@ impl DaemonProcess {
             format!(
                 "Socket: {:<30} ",
                 self.socket_file(config)
-                    .expect("problem with socket file...")
+                    .expect("problem with socket file...")  // this exception can be reached if an emacs daemon process continues but the socket has been closed... why/how/handle?
                     .to_str()
                     .expect("path has invalid chars")
             ),
