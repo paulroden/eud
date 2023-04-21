@@ -39,3 +39,6 @@ where:
 [ ] reasonable exit codes on error?
 
 [ ] given the name, we should really ensure this works with [Doom Emacs](https://github.com/doomemacs/doomemacs)
+
+[ ] nix.
+
