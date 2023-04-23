@@ -88,7 +88,7 @@ impl DaemonProcess {
     pub(crate) fn socket_file(&self, config: &Config) -> Result<PathBuf, std::io::Error> {
         match &self.user_id {
             Some(uid) => {
-                let socket_path = PathBuf::from(config.tmp_dir)
+                let socket_path = PathBuf::from(&config.server_socket_dir())
                     .join(format!("emacs{}", uid.deref()))
                     .join(self.socket_name.clone());
                 match socket_path.exists() {
@@ -139,7 +139,7 @@ pub(crate) fn launch_new(
 ) -> std::io::Result<Child> {
     let daemon_name = match name {
         Some(name) => name,
-        None => config.default_socket,
+        None => &config.default_socket,
     };
     Command::new("emacs")
         .arg(format!("--daemon={}", daemon_name))
