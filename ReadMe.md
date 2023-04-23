@@ -28,7 +28,9 @@ where:
 
 ### TODOs
 
-[ ] config via file and env (via monoidal overlay)
+[ ] tmpdir as plural (one set by user config, one for the environment `$TMPDIR`, one default for emacs (`/tmp/...`))
+
+[ ] similar overlays for other variables (e.g. `$EDITOR`)
 
 [ ] `tokio::process` for spawning child processes and reading asynchronously from them
 
@@ -42,3 +44,4 @@ where:
 
 [ ] nix.
 
+[ ] MacOS launchd integration (set default server to launch on login/boot?)
