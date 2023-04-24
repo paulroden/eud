@@ -1,4 +1,6 @@
-use std::path::PathBuf;
+use std::borrow::Cow;
+use std::path::{Path, PathBuf};
+
 
 #[derive(Debug)]
 pub struct Config {
@@ -20,7 +22,13 @@ impl Config {
         }
     }
     pub fn default() -> std::io::Result<Self> {
-        let server_socket_dir = PathBuf::from("~/.emacs.d/sockets/");
+        // NB: we are harmonising this with the following in Emacs' init:
+        // ``
+        let server_socket_dir = std::fs::canonicalize(
+            expand_tilde_as_home(
+                &PathBuf::from("~/.emacs.d/sockets/")
+            )
+        )?;
         std::fs::create_dir_all(&server_socket_dir)?;
         Ok(Self {
             default_socket: "server".to_string(),
@@ -28,8 +36,22 @@ impl Config {
             editor: "nano".to_string(),
         })
     }
-    pub fn server_socket_dir(&self) -> PathBuf {
-        self.server_socket_dir.clone()
+    pub fn server_socket_dir(&self) -> &PathBuf {
+        &self.server_socket_dir
+    }
+}
+
+
+fn expand_tilde_as_home<'p, P: AsRef<Path>>(path: &'p P) -> Cow<'p, Path> {
+    let path = path.as_ref();
+
+    match path.starts_with("~") {
+        true => dirs::home_dir()
+            .expect("Error: unable to determing home directory (~) for operating system.")
+            // unwrap shouldbe unreachable here since this match arm follows `.starts_with("~")`
+            .join(path.strip_prefix("~").unwrap())  
+            .into(),
+        false => path.into()
     }
 }
 

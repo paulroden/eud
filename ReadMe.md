@@ -4,7 +4,9 @@
 
 A kind spirit to help with managing Emacs client and server processes.
 
-(A _very, very_ early work in progress 👼👹⚠)
+(A _very_ early work in progress 👼👹⚠)
+
+
 
 
 ## Usage
@@ -26,17 +28,20 @@ where:
 
 
 
-### TODOs
+## Notes
 
-[ ] tmpdir as plural (one set by user config, one for the environment `$TMPDIR`, one default for emacs (`/tmp/...`))
+### Sockets live in `~/emacs.d/sockets` by default
+This is only intended to work with Emacs server daemons with Unix socket files (i.e. not TCP). The socket files belonging to any Emacs daemons from `eud` are stored in a single directory (this shall be made configurable). While this is inconsistent with Emacs' own implementation (which allows for the user to set `server-socket-dir` in their Emacs configuration, _or_ for the socket directory to use the environment `$TMPDIR`, _or_ to fall back to the system default temp. directory (typically `/tmp/emacs$(id -u)`). Currently, the socket directory is set to `~/.emacs.d/sockets/` (which will be created by `eud` if it does not already exist). Using a single location for this, explicitly, has the pleasant side-effect of avoiding unix socket files being strewn around various temporary directories (as can happen when using [`nix-shell`](https://nixos.wiki/wiki/Development_environment_with_nix-shell) environments, for example).
 
-[ ] similar overlays for other variables (e.g. `$EDITOR`)
+
+
+## TODOs
+
+[ ] hook for Emacs to 'know' where to look for `eud`'s sockets
 
 [ ] `tokio::process` for spawning child processes and reading asynchronously from them
 
 [ ] tests de unidad!
-
-[ ] check and, when necessary, clean up redundant socket files in `TMPDIR` (safely)
 
 [ ] reasonable exit codes on error?
 
@@ -45,3 +50,7 @@ where:
 [ ] nix.
 
 [ ] MacOS launchd integration (set default server to launch on login/boot?)
+
+
+
+

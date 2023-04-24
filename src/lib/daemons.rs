@@ -1,4 +1,3 @@
-use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use sysinfo::{Pid, Process, ProcessExt, Signal, System, SystemExt, Uid};
@@ -85,30 +84,22 @@ impl DaemonProcess {
         )
     }
 
-    pub(crate) fn socket_file(&self, config: &Config) -> Result<PathBuf, std::io::Error> {
-        match &self.user_id {
-            Some(uid) => {
-                let socket_path = PathBuf::from(&config.server_socket_dir())
-                    .join(format!("emacs{}", uid.deref()))
-                    .join(self.socket_name.clone());
-                match socket_path.exists() {
-                    true => Ok(socket_path),
-                    false => Err(std::io::Error::new(
-                        std::io::ErrorKind::Other,
-                        format!(
-                            "Daemon socket at path {} does not exist.",
-                            socket_path.display()
-                        ),
-                    )),
-                }
-            }
-            None => Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!(
-                    "Unexpected! No user ID present for Emacs daemon process:\n{:?}",
-                    self
-                ),
-            )),
+    pub(crate) fn socket_file(
+        &self,
+        config: &Config
+    ) -> std::io::Result<PathBuf> {
+        let socket_path = config.server_socket_dir().join(&self.socket_name);
+        match socket_path.exists() {
+            true  => Ok(socket_path),
+            false => Err(
+                std::io::Error::new(
+                    std::io::ErrorKind::NotFound,
+                    format!(
+                        "Daemon socket at path {} does not exist.",
+                        socket_path.display()
+                    ),
+                )
+            ),
         }
     }
 }
