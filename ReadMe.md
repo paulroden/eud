@@ -12,7 +12,7 @@ A kind spirit to help with managing Emacs client and server processes.
 ## Usage
 
 ```
-eud [list|new NAME|connect [NAME]|kill [NAME|--all]]
+eud [list|new NAME|connect [NAME]|kill [NAME|--all]|server-socket-dir-path]
 ```
 
 where:
@@ -22,9 +22,9 @@ where:
 
 `connect NAME FILE` creates a new Emacs client process (i.e. `emacsclient`) connected to the socket called NAME and visits FILE with Emacs; if no FILE is passed, Emacs will visit the working directory in `dired` mode. Exits and displays an error if FILE does not exist if a daemon process with socket NAME does not exist.
 
-`kill NAME` sends a TERM signal (15) to the Emacs daemon process with socket NAME,
+`kill NAME` sends a TERM signal (15) to the Emacs daemon process with socket NAME; `kill --all` does this for all known Emacs daemon processes.
 
-(TODO: or with `--all` sends the kill signal to all Emacs daemon processes)
+`server-socket-dir-path`  prints the path to the directory where Unix socket files are stored (see below)
 
 
 
@@ -44,9 +44,11 @@ If `eud` is installed and available on the `PATH`, adding the short snipped belo
 
 ## TODOs
 
-[ ] `tokio::process` for spawning child processes and reading asynchronously from them
+[ ] `tokio::process` for spawning child processes and reading output asynchronously from them
 
 [ ] tests de unidad!
+
+[ ] shell autocomplete suggestions
 
 [ ] reasonable exit codes on error?
 
@@ -55,5 +57,4 @@ If `eud` is installed and available on the `PATH`, adding the short snipped belo
 [ ] nix.
 
 [ ] MacOS launchd integration (set default server to launch on login/boot?)
-
 
