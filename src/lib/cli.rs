@@ -47,6 +47,10 @@ enum Commands {
         #[arg(required = false)]
         file: Option<PathBuf>,
     },
+
+    /// print directory location for daemon socket files (can be passed to Emacs' `server-socket-dir' variable)
+    #[command()]
+    ServerSocketDirPath
 }
 
 
@@ -119,6 +123,9 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
                 Err(e) => eprint!("Error launching client:\n{e}"),
             }
         },
+        Commands::ServerSocketDirPath => {
+            print!("{}", config.server_socket_dir().display());
+        }
     }
     Ok(())
 }

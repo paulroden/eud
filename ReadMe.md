@@ -33,11 +33,16 @@ where:
 ### Sockets live in `~/emacs.d/sockets` by default
 This is only intended to work with Emacs server daemons with Unix socket files (i.e. not TCP). The socket files belonging to any Emacs daemons from `eud` are stored in a single directory (this shall be made configurable). While this is inconsistent with Emacs' own implementation (which allows for the user to set `server-socket-dir` in their Emacs configuration, _or_ for the socket directory to use the environment `$TMPDIR`, _or_ to fall back to the system default temp. directory (typically `/tmp/emacs$(id -u)`). Currently, the socket directory is set to `~/.emacs.d/sockets/` (which will be created by `eud` if it does not already exist). Using a single location for this, explicitly, has the pleasant side-effect of avoiding unix socket files being strewn around various temporary directories (as can happen when using [`nix-shell`](https://nixos.wiki/wiki/Development_environment_with_nix-shell) environments, for example).
 
+If `eud` is installed and available on the `PATH`, adding the short snipped below will ensure Emacs always uses this sockets directory:
+
+``` emacs-lisp
+(when (executable-find "eud")
+  (setq server-socket-dir
+	(shell-command-to-string "eud server-socket-dir-path")))
+```
 
 
 ## TODOs
-
-[ ] hook for Emacs to 'know' where to look for `eud`'s sockets
 
 [ ] `tokio::process` for spawning child processes and reading asynchronously from them
 
@@ -50,7 +55,5 @@ This is only intended to work with Emacs server daemons with Unix socket files (
 [ ] nix.
 
 [ ] MacOS launchd integration (set default server to launch on login/boot?)
-
-
 
 
