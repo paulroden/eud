@@ -64,22 +64,30 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
             }
         },
         Commands::New{ name } => {
-            let new_daemon = daemons::launch_new(name, &config);
-
-            match new_daemon {
-                Ok(daemon) => {
-                    let output = daemon
-                        .wait_with_output().expect("what? no outouts??");
-                    println!(
-                        "stdout:\n{}\n",
-                        String::from_utf8_lossy(output.stdout.as_slice())
-                    );
-                    println!(
-                        "stderr:\n{}",
-                        String::from_utf8_lossy(output.stderr.as_slice())
-                    );
-                },
-                Err(e) => eprintln!("No daemon process started.. wtf?\n{e}"),
+            let name_or_default = name.clone()
+                .unwrap_or(config.default_socket_name().clone());
+            // first check if a daemon with the same socket name (or the
+            // default name) already exists (whether in `eud's
+            // `server_socket_dir` location or otherwise)
+            match daemons::active_daemons_names().contains(&name_or_default) {
+                true => println!("A daemon with name '{name_or_default}' is already running. If you wish to connect to it, try:\n    `eud connect {name_or_default} [FILE]`"),
+                false => {
+                    match daemons::launch_new(&name, &config) {
+                        Ok(daemon) => {
+                            let output = daemon
+                                .wait_with_output().expect("what? no outouts??");
+                            println!(
+                                "stdout:\n{}\n",
+                                String::from_utf8_lossy(output.stdout.as_slice())
+                            );
+                            println!(
+                                "stderr:\n{}",
+                                String::from_utf8_lossy(output.stderr.as_slice())
+                            );
+                        },
+                        Err(e) => eprintln!("No daemon process started.. wtf?\n{e}"),
+                    }
+                }
             }
         },
         Commands::Kill{ all, daemon_name } => {
