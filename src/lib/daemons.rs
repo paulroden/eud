@@ -130,7 +130,7 @@ pub(crate) fn launch_new(
 ) -> std::io::Result<Child> {
     let daemon_name = match name {
         Some(name) => name,
-        None => &config.default_socket,
+        None => &config.default_socket_name(),
     };
     Command::new("emacs")
         .arg(format!("--daemon={}", daemon_name))
