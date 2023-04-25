@@ -44,17 +44,25 @@ If `eud` is installed and available on the `PATH`, adding the short snipped belo
 
 ## TODOs
 
-[ ] `tokio::process` for spawning child processes and reading output asynchronously from them
+ - [ ] `eud` controls only daemons with sockets in prescribed directory. I can list (--all) daemon processes, but will only _connect_ to ones which are known from this directory (...)
 
-[ ] tests de unidad!
+ - [ ] `tokio::process` for spawning child processes and reading output asynchronously from them
 
-[ ] shell autocomplete suggestions
+ - [ ] tests de unidad!
 
-[ ] reasonable exit codes on error?
+ - [ ] shell autocomplete suggestions
 
-[ ] given the name, we should really ensure this works with [Doom Emacs](https://github.com/doomemacs/doomemacs)
+ - [ ] reasonable exit codes on error?
 
-[ ] nix.
+ - [ ] given the name, we should really ensure this works with [Doom Emacs](https://github.com/doomemacs/doomemacs)
 
-[ ] MacOS launchd integration (set default server to launch on login/boot?)
+ - [ ] nix.
 
+ - [ ] MacOS launchd integration (set default server to launch on login/boot?)
+
+ - [ ] `System::new_all()` from `sysinfo` can probably be slimmed-down
+
+
+
+## Prior Art
+https://github.com/Cycatz/dmenu-emacs-daemon
