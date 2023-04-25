@@ -53,8 +53,8 @@ fn expand_tilde_as_home<'p, P: AsRef<Path>>(path: &'p P) -> Cow<'p, Path> {
 
     match path.starts_with("~") {
         true => dirs::home_dir()
-            .expect("Error: unable to determing home directory (~) for operating system.")
-            // unwrap shouldbe unreachable here since this match arm follows `.starts_with("~")`
+            .expect("Error: unable to determine home directory (~) for operating system.")
+            // unwrap should be unreachable here since this match arm follows `.starts_with("~")`
             .join(path.strip_prefix("~").unwrap())  
             .into(),
         false => path.into()
