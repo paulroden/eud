@@ -12,11 +12,50 @@ use tokio::{
 use colored::ColoredString;
 
 
+#[derive(Clone)]
 pub struct CommandParts
 {
     pub program: String,
     pub args: Vec<String>,
 }
+
+
+// TODO: no pub here. maybe try builder ptn
+pub struct Style {
+    pub spinner: Vec<&'static str>,
+    pub stdout_style: Box<dyn Fn(&str) -> ColoredString>,
+    pub stderr_style: Box<dyn Fn(&str) -> ColoredString>,
+    pub message_style: Box<dyn Fn(&str) -> ColoredString>,
+    pub end_message: Option<String>,
+}
+
+impl Style {
+    pub fn new(
+        spinner: Vec<&'static str>,
+        stdout_style: Box<dyn Fn(&str) -> ColoredString>,
+        stderr_style: Box<dyn Fn(&str) -> ColoredString>,
+        message_style: Box<dyn Fn(&str) -> ColoredString>,
+        end_message: Option<String>,
+    ) -> Self {
+        Self {
+            spinner,
+            stdout_style,
+            stderr_style,
+            message_style,
+            end_message,
+        }
+    }
+
+    pub fn spinner_frame(&self, k: usize) -> String {
+        let n = self.spinner.len();
+        let frame = k % n;
+        // unwrap safe because % ensures `frame` is bounded at `n`
+        self.spinner.get(frame).unwrap().to_string()
+    }
+}
+
+
+
 
 #[derive(Clone)]
 enum Message {
@@ -33,28 +72,6 @@ struct View {
 }
 
 impl View {
-    fn with_style(style: Style) -> Self {
-        Self {
-            message: Arc::new(Mutex::new(Message::None)),
-            ticker: Arc::new(AtomicUsize::new(0)),
-            style,
-        }
-    }
-    
-    fn tick(&self) -> usize {
-        self.ticker.fetch_add(1, Ordering::SeqCst)
-    }
-
-    fn update_message(&mut self, msg: &Message) {
-        let mut prev = self.message.lock().unwrap();
-        *prev = msg.clone();
-    }
-
-    fn get_frame(&self) -> String {
-        let count = self.ticker.load(Ordering::SeqCst);
-        self.style.spinner_frame(count)
-    }
-    
     fn display(&self) -> String {
         let styled_msg = match self.message.lock().unwrap().deref() {
             Message::StdOut(msg) => (self.style.stdout_style)(msg),
@@ -62,45 +79,54 @@ impl View {
             Message::None => "".into(),
         };
         format!(
-            "{} {:>10}",
+            "{} {}",
             &self.get_frame(),
             styled_msg,
         )
     }
+    
+    fn get_frame(&self) -> String {
+        let count = self.ticker.load(Ordering::SeqCst);
+        self.style.spinner_frame(count)
+    }
+
     fn print(&self) {
+        self.clear();
         print!("\r{}", self.display());
         std::io::stdout().flush().expect("cannot flush stdout");
     }
-}
 
-// TODO: no pub here. maybe try builder ptn
-pub struct Style {
-    pub spinner: Vec<&'static str>,
-    pub stdout_style: Box<dyn Fn(&str) -> ColoredString>,
-    pub stderr_style: Box<dyn Fn(&str) -> ColoredString>,    
-}
-
-impl Style {
-    pub fn new(
-        spinner: Vec<&'static str>,
-        stdout_style: Box<dyn Fn(&str) -> ColoredString>,
-        stderr_style: Box<dyn Fn(&str) -> ColoredString>,
-    ) -> Self {
-        Self {
-            spinner,
-            stdout_style,
-            stderr_style,
+    fn clear(&self) {
+        print!("\x1B[2K");
+        print!("\r");
+        std::io::stdout().flush().expect("cannot flush stdout");
+    }
+    
+    fn show_end_message(&self) {
+        match &self.style.end_message {
+            None => (),
+            Some(message) => {
+                self.clear();
+                println!("{}", (self.style.message_style)(message) );
+            }
         }
     }
-
-    pub fn spinner_frame(&self, k: usize) -> String {
-        let n = self.spinner.len();
-        let frame = k % n;
-        // unwrap safe because % ensures `frame` is bounded at `n`
-        self.spinner.get(frame).unwrap().to_string()
+    
+    fn tick(&self) -> usize {
+        self.ticker.fetch_add(1, Ordering::SeqCst)
+    }
+    fn update_message(&mut self, msg: &Message) {
+        let mut prev = self.message.lock().unwrap();
+        *prev = msg.clone();
+    }
+    fn with_style(style: Style) -> Self {
+        Self {
+            message: Arc::new(Mutex::new(Message::None)),
+            ticker: Arc::new(AtomicUsize::new(0)),
+            style,
+        }
     }
 }
-
 
 pub async fn standard_styled(
     command: CommandParts,
@@ -149,6 +175,9 @@ pub async fn standard_styled(
             }
         }
     }
+
+    // command has completed, play ending message if there is one
+    view.show_end_message();
     
     Ok(())
 }

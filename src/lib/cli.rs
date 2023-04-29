@@ -86,6 +86,8 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
                          ],
                          stdout_style: Box::new(|s: &str| s.blue() ),
                          stderr_style: Box::new(|s: &str| s.bold().yellow() ),
+                         message_style: Box::new(|s: &str| s.bold().purple() ),
+                         end_message: Some(format!("Launched Emacs daemon '{name_or_default}' 🚀")),
                     };
 
                     tokio::runtime::Builder::new_multi_thread()
@@ -94,10 +96,8 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
                         .block_on(async {
                             let name = name.clone();
                             let daemon_cmd = daemons::build_new(name, config);
-                            standard_styled(daemon_cmd, style).await.unwrap()
-                            
+                            standard_styled(daemon_cmd, style).await.unwrap();  // TODO: handline unwrap
                         })
-                    
                 }
             }
         },
