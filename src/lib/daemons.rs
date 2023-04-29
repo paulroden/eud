@@ -1,7 +1,6 @@
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command, Stdio};
 use sysinfo::{Pid, Process, ProcessExt, Signal, System, SystemExt, Uid};
-
+use standard_styled::CommandParts;
 use crate::config::Config;
 
 #[derive(Clone, Debug)]
@@ -124,19 +123,20 @@ pub(crate) fn active_daemons_names() -> Vec<String> {
     get_all().iter().map(|d| d.socket_name.clone()).collect()
 }
 
-pub(crate) fn launch_new(
-    name: &Option<String>,
+pub(crate) fn build_new(
+    name: Option<String>,
     config: &Config
-) -> std::io::Result<Child> {
+) -> CommandParts {
     let daemon_name = match name {
-        Some(name) => name,
-        None => &config.default_socket_name(),
+        Some(name) => name.clone(),
+        None => config.default_socket_name().clone(),
     };
-    Command::new("emacs")
-        .arg(format!("--daemon={}", daemon_name))
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
+    CommandParts {
+        program: "emacs".to_string(),
+        args: vec![format!("--daemon={}", daemon_name)]
+    }
+    // Command::new("emacs")
+    //     .arg(format!("--daemon={}", daemon_name))
 }
 // TODO: (above) look into std::process::Command::{current_dir, envs}
 
@@ -156,3 +156,5 @@ pub(crate) fn kill_by_name(name: &str) -> Result<Pid, std::io::Error> {
 pub(crate) fn kill_all() -> Vec<Result<Pid, std::io::Error>> {
     get_all().iter().map(|daemon| daemon.kill()).collect()
 }
+
+

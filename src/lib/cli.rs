@@ -1,8 +1,11 @@
 use std::path::PathBuf;
 use clap::{Parser, Subcommand};
+use standard_styled::{Style, standard_styled};
+use colored::Colorize;
 use super::config::Config;
 use super::daemons;
 use super::client;
+
 
 
 #[derive(Debug, Parser)]
@@ -72,21 +75,29 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
             match daemons::active_daemons_names().contains(&name_or_default) {
                 true => println!("A daemon with name '{name_or_default}' is already running. If you wish to connect to it, try:\n    `eud connect {name_or_default} [FILE]`"),
                 false => {
-                    match daemons::launch_new(&name, &config) {
-                        Ok(daemon) => {
-                            let output = daemon
-                                .wait_with_output().expect("what? no outouts??");
-                            println!(
-                                "stdout:\n{}\n",
-                                String::from_utf8_lossy(output.stdout.as_slice())
-                            );
-                            println!(
-                                "stderr:\n{}",
-                                String::from_utf8_lossy(output.stderr.as_slice())
-                            );
-                        },
-                        Err(e) => eprintln!("No daemon process started.. wtf?\n{e}"),
-                    }
+                     let style = Style {
+                         spinner: vec![
+                             "(●     )",
+                             "( ●    )",
+                             "(  ●   )",
+                             "(   ●  )",
+                             "(    ● )",
+                             "(     ●)",
+                         ],
+                         stdout_style: Box::new(|s: &str| s.blue() ),
+                         stderr_style: Box::new(|s: &str| s.bold().yellow() ),
+                    };
+
+                    tokio::runtime::Builder::new_multi_thread()
+                        .enable_all()
+                        .build()?
+                        .block_on(async {
+                            let name = name.clone();
+                            let daemon_cmd = daemons::build_new(name, config);
+                            standard_styled(daemon_cmd, style).await.unwrap()
+                            
+                        })
+                    
                 }
             }
         },
@@ -157,3 +168,5 @@ pub fn list_daemons_short() -> () {
     daemons::active_daemons_names().iter()
         .for_each(|name| println!("{name}"))
 }
+
+
