@@ -44,7 +44,7 @@ If `eud` is installed and available on the `PATH`, adding the short snipped belo
 
 ## TODOs
 
- - [ ] `eud` controls only daemons with sockets in prescribed directory. I can list (--all) daemon processes, but will only _connect_ to ones which are known from this directory (...)
+ - [ ] `eud` controls only daemons with sockets in prescribed directory (`server-socket-dir`). I can list (--all) daemon processes, but will only _connect_ to ones which are known from this directory (...). Handling this is unnecessary, so long as `server-socket-dir` is set in Emacs' config, but this shouldn't be a requirement.
 
  - [ ] `tokio::process` for spawning child processes and reading output asynchronously from them
 
@@ -65,4 +65,6 @@ If `eud` is installed and available on the `PATH`, adding the short snipped belo
 
 
 ## Prior Art
-https://github.com/Cycatz/dmenu-emacs-daemon
+[Using Emacs as a Server](https://www.gnu.org/software/emacs/manual/html_node/emacs/Emacs-Server.html)
+[As above, on Emacs Docs](https://emacsdocs.org/docs/emacs/Emacs-Server)
+[Linux Rofi/dmenu interface](https://github.com/Cycatz/dmenu-emacs-daemon)
