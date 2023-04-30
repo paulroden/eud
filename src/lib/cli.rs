@@ -86,8 +86,8 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
                          ],
                          stdout_style: Box::new(|s: &str| s.blue() ),
                          stderr_style: Box::new(|s: &str| s.bold().yellow() ),
-                         message_style: Box::new(|s: &str| s.bold().purple() ),
-                         end_message: Some(format!("Launched Emacs daemon '{name_or_default}' 🚀")),
+                         message_style: Box::new(|s: &str| s.bold().white().on_purple() ),
+                         end_message: Some(format!(" Launched Emacs daemon '{name_or_default}' 🚀 ")),
                     };
 
                     tokio::runtime::Builder::new_multi_thread()

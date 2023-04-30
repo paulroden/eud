@@ -133,8 +133,6 @@ pub async fn standard_styled(
     style: Style
 ) -> std::io::Result<()> {
     
-    let mut view = View::with_style(style);
-
     let mut child = Command::new(command.program)
         .args(command.args)
         .stdout(Stdio::piped())
@@ -147,6 +145,9 @@ pub async fn standard_styled(
     let mut stderr_reader = BufReader::new(child_stderr).lines();
     let mut stdout_reader = BufReader::new(child_stdout).lines();
 
+    let mut view = View::with_style(style);
+    view.print();
+    
     loop {
         tokio::select! {
             result = stdout_reader.next_line() => {
@@ -176,7 +177,7 @@ pub async fn standard_styled(
         }
     }
 
-    // command has completed, play ending message if there is one
+    // command has completed, play ending message (if there is one)
     view.show_end_message();
     
     Ok(())
