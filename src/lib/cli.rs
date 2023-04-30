@@ -85,8 +85,8 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
                              "(     ●)",
                          ],
                          stdout_style: Box::new(|s: &str| s.blue() ),
-                         stderr_style: Box::new(|s: &str| s.bold().yellow() ),
-                         message_style: Box::new(|s: &str| s.bold().white().on_purple() ),
+                         stderr_style: Box::new(|s: &str| s.yellow() ),
+                         message_style: Box::new(|s: &str| s.bold().truecolor(127, 90, 182) ),
                          end_message: Some(format!(" Launched Emacs daemon '{name_or_default}' 🚀 ")),
                     };
 
