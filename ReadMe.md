@@ -61,6 +61,8 @@ If `eud` is installed and available on the `PATH`, adding the short snipped belo
  - [ ] MacOS launchd integration (set default server to launch on login/boot?)
 
  - [ ] `System::new_all()` from `sysinfo` can probably be slimmed-down
+ 
+ - [ ] How about a `new` command that creates an instance specifically for a working directory / project?
 
 
 
