@@ -208,8 +208,6 @@ pub async fn standard_styled(
 
 #[cfg(test)]
 mod tests {
-    // note, `Command` from std library used in testing; tokio's `Command`
-    // is a wrapper around std `Command`.
     use std::ffi::OsStr;
     use crate::CommandParts;
 
@@ -219,6 +217,8 @@ mod tests {
             &"ls".to_string(),
             &vec!["-l".to_string(), "-a".to_string()]
         ).build();
+        // note, `Command` from std library used here; tokio's `Command`
+        // is an async wrapper around std `Command`
         let cmd = cmd.as_std();
         
         assert_eq!(cmd.get_program(), "ls");
@@ -242,6 +242,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_stderr_out_only() {
+        // `echo` command is run via bash sub-process at a means to
+        // force output to stderr
         let mut subecho = CommandParts::new(
             &"bash".to_string(),
             &vec![
