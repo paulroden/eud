@@ -21,23 +21,29 @@ pub struct CommandParts
 }
 
 impl CommandParts {
+    pub fn args(&self) -> std::slice::Iter<'_, String> {
+        self.args.iter()
+    }
+
     pub fn new(program: &String, args: &Vec<String>) -> Self {
         Self {
             program: program.into(),
             args: args.clone(),
         }
     }
-
+    
     pub fn program(&self) -> String {
         self.program.clone()
     }
-    pub fn args(&self) -> std::slice::Iter<'_, String> {
-        self.args.iter()
+
+    pub fn build(&self) -> Command {
+        let mut cmd = Command::new(&self.program);
+        cmd.args(self.args().into_iter());
+        cmd
     }
 }
 
 
-// TODO: no pub here. maybe try builder ptn
 pub struct Style {
     pub spinner: Vec<&'static str>,
     pub stdout_style: Box<dyn Fn(&str) -> ColoredString>,
@@ -150,8 +156,7 @@ pub async fn standard_styled(
     style: &Style
 ) -> std::io::Result<()> {
     
-    let mut child = Command::new(command.program)
-        .args(command.args)
+    let mut child = command.build()
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()?;
@@ -203,16 +208,49 @@ pub async fn standard_styled(
 
 #[cfg(test)]
 mod tests {
+    // note, `Command` from std library used in testing; tokio's `Command`
+    // is a wrapper around std `Command`.
+    use std::ffi::OsStr;
     use crate::CommandParts;
 
-
-
     #[test]
-    fn test_stdout_out_only() {
-        let cat_stdout = CommandParts::new(
-            &"cat".to_string(),
-            &vec!["abc".to_string()]
+    fn command_parts_build_std_command() {
+        let cmd = CommandParts::new(
+            &"ls".to_string(),
+            &vec!["-l".to_string(), "-a".to_string()]
+        ).build();
+        let cmd = cmd.as_std();
+        
+        assert_eq!(cmd.get_program(), "ls");
+        assert_eq!(
+            cmd.get_args().collect::<Vec<&OsStr>>(),
+            &["-l", "-a"]
         );
-        println!("{:?}", cat_stdout.program());
+    }
+
+
+    #[tokio::test]
+    async fn test_stdout_out_only() {
+        let mut echo = CommandParts::new(
+            &"echo".to_string(),
+            &vec!["abc".to_string()]
+        ).build();
+        let output = echo.output().await.unwrap();
+        
+        assert_eq!(output.stdout, "abc\n".as_bytes());
+    }
+
+    #[tokio::test]
+    async fn test_stderr_out_only() {
+        let mut subecho = CommandParts::new(
+            &"bash".to_string(),
+            &vec![
+                "-c".to_string(),
+                "echo abc >&2".to_string(),
+            ],
+        ).build();
+        let output = subecho.output().await.unwrap();
+        
+        assert_eq!(output.stderr, "abc\n".as_bytes());
     }
 }
