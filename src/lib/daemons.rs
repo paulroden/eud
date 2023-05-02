@@ -131,12 +131,10 @@ pub(crate) fn build_new(
         Some(name) => name.clone(),
         None => config.default_socket_name().clone(),
     };
-    CommandParts {
-        program: "emacs".to_string(),
-        args: vec![format!("--daemon={}", daemon_name)]
-    }
-    // Command::new("emacs")
-    //     .arg(format!("--daemon={}", daemon_name))
+    CommandParts::new(
+        &"emacs".to_string(),
+        &vec![format!("--daemon={}", daemon_name)],
+    )
 }
 // TODO: (above) look into std::process::Command::{current_dir, envs}
 

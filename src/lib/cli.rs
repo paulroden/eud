@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 use clap::{Parser, Subcommand};
-use standard_styled::{Style, standard_styled};
-use colored::Colorize;
+use standard_styled::standard_styled;
 use super::config::Config;
 use super::daemons;
 use super::client;
@@ -75,28 +74,13 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
             match daemons::active_daemons_names().contains(&name_or_default) {
                 true => println!("A daemon with name '{name_or_default}' is already running. If you wish to connect to it, try:\n    `eud connect {name_or_default} [FILE]`"),
                 false => {
-                     let style = Style {
-                         spinner: vec![
-                             "(●     )",
-                             "( ●    )",
-                             "(  ●   )",
-                             "(   ●  )",
-                             "(    ● )",
-                             "(     ●)",
-                         ],
-                         stdout_style: Box::new(|s: &str| s.blue() ),
-                         stderr_style: Box::new(|s: &str| s.yellow() ),
-                         message_style: Box::new(|s: &str| s.bold().truecolor(127, 90, 182) ),
-                         end_message: Some(format!(" Launched Emacs daemon '{name_or_default}' 🚀 ")),
-                    };
-
                     tokio::runtime::Builder::new_multi_thread()
                         .enable_all()
                         .build()?
                         .block_on(async {
                             let name = name.clone();
                             let daemon_cmd = daemons::build_new(name, config);
-                            standard_styled(daemon_cmd, style).await.unwrap();  // TODO: handline unwrap
+                            standard_styled(daemon_cmd, config.style()).await.unwrap();  // TODO: handline unwrap
                         })
                 }
             }

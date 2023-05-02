@@ -1,25 +1,18 @@
 use std::borrow::Cow;
 use std::path::{Path, PathBuf};
+use standard_styled::{Colorize, Style};
 
 
-#[derive(Debug)]
 pub struct Config {
     default_socket: String,
     server_socket_dir: PathBuf,   // c.f. `server-socket-dir' in emacs
     editor: String,
+    style: Style,
 }
 
 impl Config {
-    pub fn new(
-        default_socket: String,
-        server_socket_dir: PathBuf,
-        editor: String,
-    ) -> Self {
-        Self {
-            default_socket,
-            server_socket_dir,
-            editor,
-        }
+    pub fn alternative_editor(&self) -> &String {
+        &self.editor
     }
     pub fn default() -> std::io::Result<Self> {
         // NB: we are harmonising this with the following in Emacs' init:
@@ -30,20 +23,50 @@ impl Config {
             )
         )?;
         std::fs::create_dir_all(&server_socket_dir)?;
+
+        let default_style = Style {
+            spinner: vec![
+                "(●     )",
+                "( ●    )",
+                "(  ●   )",
+                "(   ●  )",
+                "(    ● )",
+                "(     ●)",
+            ],
+            stdout_style: Box::new(|s: &str| s.blue() ),
+            stderr_style: Box::new(|s: &str| s.yellow() ),
+            message_style: Box::new(|s: &str| s.bold().truecolor(127, 90, 182) ),
+            end_message: Some(" Launched Emacs daemon  🚀 ".to_string()),
+        };
+        
         Ok(Self {
             default_socket: "server".to_string(),
             server_socket_dir,
             editor: "nano".to_string(),
+            style: default_style,
         })
     }
     pub fn default_socket_name(&self) -> &String {
         &self.default_socket
     }
+    pub fn new(
+        default_socket: String,
+        server_socket_dir: PathBuf,
+        editor: String,
+        style: Style,
+    ) -> Self {
+        Self {
+            default_socket,
+            server_socket_dir,
+            editor,
+            style,
+        }
+    }
     pub fn server_socket_dir(&self) -> &PathBuf {
         &self.server_socket_dir
     }
-    pub fn alternative_editor(&self) -> &String {
-        &self.editor
+    pub fn style(&self) -> &Style {
+        &self.style
     }
 }
 
