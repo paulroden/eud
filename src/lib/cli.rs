@@ -79,8 +79,11 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
                         .build()?
                         .block_on(async {
                             let name = name.clone();
-                            let daemon_cmd = daemons::build_new(name, config);
-                            standard_styled(daemon_cmd, config.style()).await.unwrap();  // TODO: handline unwrap
+                            let cmd = daemons::build_new(name, config);
+                            match standard_styled(cmd, config.style()).await {
+                                Ok(_) => (),
+                                Err(e) => eprintln!("Tokio error from `standard_styled: {e}"),
+                            }
                         })
                 }
             }
