@@ -10,13 +10,30 @@ use tokio::{
     process::Command,
 };
 use colored::ColoredString;
+pub use colored::Colorize; // re-exported for creation of styles (TODO: develop reasonable semantics for this)
 
 
 #[derive(Clone)]
 pub struct CommandParts
 {
-    pub program: String,
-    pub args: Vec<String>,
+    program: String,
+    args: Vec<String>,
+}
+
+impl CommandParts {
+    pub fn new(program: &String, args: &Vec<String>) -> Self {
+        Self {
+            program: program.into(),
+            args: args.clone(),
+        }
+    }
+
+    pub fn program(&self) -> String {
+        self.program.clone()
+    }
+    pub fn args(&self) -> std::slice::Iter<'_, String> {
+        self.args.iter()
+    }
 }
 
 
@@ -45,7 +62,7 @@ impl Style {
             end_message,
         }
     }
-
+    
     pub fn spinner_frame(&self, k: usize) -> String {
         let n = self.spinner.len();
         let frame = k % n;
@@ -65,13 +82,13 @@ enum Message {
 }
 
 
-struct View {
+struct View<'s> {
     message: Arc<Mutex<Message>>,
     ticker: Arc<AtomicUsize>,
-    style: Style,
+    style: &'s Style,
 }
 
-impl View {
+impl<'s> View<'s> {
     fn display(&self) -> String {
         let styled_msg = match self.message.lock().unwrap().deref() {
             Message::StdOut(msg) => (self.style.stdout_style)(msg),
@@ -119,7 +136,7 @@ impl View {
         let mut prev = self.message.lock().unwrap();
         *prev = msg.clone();
     }
-    fn with_style(style: Style) -> Self {
+    fn with_style(style: &'s Style) -> Self {
         Self {
             message: Arc::new(Mutex::new(Message::None)),
             ticker: Arc::new(AtomicUsize::new(0)),
@@ -130,7 +147,7 @@ impl View {
 
 pub async fn standard_styled(
     command: CommandParts,
-    style: Style
+    style: &Style
 ) -> std::io::Result<()> {
     
     let mut child = Command::new(command.program)
@@ -186,11 +203,16 @@ pub async fn standard_styled(
 
 #[cfg(test)]
 mod tests {
-    
+    use crate::CommandParts;
+
+
 
     #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
+    fn test_stdout_out_only() {
+        let cat_stdout = CommandParts::new(
+            &"cat".to_string(),
+            &vec!["abc".to_string()]
+        );
+        println!("{:?}", cat_stdout.program());
     }
 }
