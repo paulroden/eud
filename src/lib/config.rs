@@ -1,4 +1,6 @@
 use std::borrow::Cow;
+use std::fs;
+use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use standard_styled::{Colorize, Style};
 
@@ -22,7 +24,11 @@ impl Config {
                 &PathBuf::from("~/.emacs.d/sockets/")
             )
         )?;
+        // create `sockets` directory and ensure permissions are appropriate (rwx------)
         std::fs::create_dir_all(&server_socket_dir)?;
+        let mut perms = fs::metadata(&server_socket_dir)?.permissions();
+        perms.set_mode(0o700);
+        fs::set_permissions(&server_socket_dir, perms)?;
 
         let default_style = Style {
             spinner: vec![
