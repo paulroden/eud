@@ -17,18 +17,9 @@ impl Config {
         &self.editor
     }
     pub fn default() -> std::io::Result<Self> {
-        // NB: we are harmonising this with the following in Emacs' init:
-        // ``
-        let server_socket_dir = std::fs::canonicalize(
-            expand_tilde_as_home(
-                &PathBuf::from("~/.emacs.d/sockets/")
-            )
+        let server_socket_dir = create_server_socket_dir(
+            "~/.emacs.d/sockets/"  // CAUTION: hardcoded (but intentionally)
         )?;
-        // create `sockets` directory and ensure permissions are appropriate (rwx------)
-        std::fs::create_dir_all(&server_socket_dir)?;
-        let mut perms = fs::metadata(&server_socket_dir)?.permissions();
-        perms.set_mode(0o700);
-        fs::set_permissions(&server_socket_dir, perms)?;
 
         let default_style = Style {
             spinner: vec![
@@ -90,3 +81,28 @@ fn expand_tilde_as_home<'p, P: AsRef<Path>>(path: &'p P) -> Cow<'p, Path> {
     }
 }
 
+
+fn create_server_socket_dir<P>(
+    dir_path: P
+) -> std::io::Result<PathBuf>
+where
+  P: AsRef<Path> + AsRef<std::ffi::OsStr>
+{
+    // NB: we are harmonising this with the following in Emacs' init:
+    // `(when (executable-find "eud")
+    //     (setq server-socket-dir
+    //       (shell-command-to-string "eud server-socket-dir-path")))`
+    let server_socket_dir = std::fs::canonicalize(
+        expand_tilde_as_home(
+            &PathBuf::from(&dir_path)
+        )
+    )?;
+    // create `sockets` directory
+    std::fs::create_dir_all(&server_socket_dir)?;
+    // .. and ensure permissions are appropriate (rwx------)
+    let mut perms = fs::metadata(&server_socket_dir)?.permissions();
+    perms.set_mode(0o700);
+    fs::set_permissions(&server_socket_dir, perms)?;
+    
+    Ok(server_socket_dir)   
+}
