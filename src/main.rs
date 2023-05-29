@@ -3,14 +3,15 @@ use eud::cli::cli;
 
 fn main() {
 
-    let config = Config::new(
-        "server",
-        "/tmp/",
-        "nano",
-    );
-
-    match cli(&config) {
-        Ok(_) => (),
-        Err(e) => eprintln!("{}", e),
-    };
+    match Config::default() {
+        Ok(config) => {
+            match cli(&config) {
+                Ok(_) => (),
+                Err(e) => eprintln!("{}", e),
+            }
+        },
+        Err(e) => eprintln!("Error with default config:\n{e}"),
+    }
 }
+
+

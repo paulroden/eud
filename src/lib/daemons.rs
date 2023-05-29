@@ -1,8 +1,6 @@
-use std::ops::Deref;
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command, Stdio};
 use sysinfo::{Pid, Process, ProcessExt, Signal, System, SystemExt, Uid};
-
+use standard_styled::CommandParts;
 use crate::config::Config;
 
 #[derive(Clone, Debug)]
@@ -78,37 +76,29 @@ impl DaemonProcess {
             format!(
                 "Socket: {:<30} ",
                 self.socket_file(config)
-                    .expect("problem with socket file...")
+                    .expect("problem with socket file...")  // this exception can be reached if an emacs daemon process continues but the socket has been closed... why/how/handle?
                     .to_str()
                     .expect("path has invalid chars")
             ),
         )
     }
 
-    pub(crate) fn socket_file(&self, config: &Config) -> Result<PathBuf, std::io::Error> {
-        match &self.user_id {
-            Some(uid) => {
-                let socket_path = PathBuf::from(config.tmp_dir)
-                    .join(format!("emacs{}", uid.deref()))
-                    .join(self.socket_name.clone());
-                match socket_path.exists() {
-                    true => Ok(socket_path),
-                    false => Err(std::io::Error::new(
-                        std::io::ErrorKind::Other,
-                        format!(
-                            "Daemon socket at path {} does not exist.",
-                            socket_path.display()
-                        ),
-                    )),
-                }
-            }
-            None => Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!(
-                    "Unexpected! No user ID present for Emacs daemon process:\n{:?}",
-                    self
-                ),
-            )),
+    pub(crate) fn socket_file(
+        &self,
+        config: &Config
+    ) -> std::io::Result<PathBuf> {
+        let socket_path = config.server_socket_dir().join(&self.socket_name);
+        match socket_path.exists() {
+            true  => Ok(socket_path),
+            false => Err(
+                std::io::Error::new(
+                    std::io::ErrorKind::NotFound,
+                    format!(
+                        "Daemon socket at path {} does not exist.",
+                        socket_path.display()
+                    ),
+                )
+            ),
         }
     }
 }
@@ -133,19 +123,18 @@ pub(crate) fn active_daemons_names() -> Vec<String> {
     get_all().iter().map(|d| d.socket_name.clone()).collect()
 }
 
-pub(crate) fn launch_new(
-    name: &Option<String>,
+pub(crate) fn build_new(
+    name: Option<String>,
     config: &Config
-) -> std::io::Result<Child> {
+) -> CommandParts {
     let daemon_name = match name {
-        Some(name) => name,
-        None => config.default_socket,
+        Some(name) => name.clone(),
+        None => config.default_socket_name().clone(),
     };
-    Command::new("emacs")
-        .arg(format!("--daemon={}", daemon_name))
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
+    CommandParts::new(
+        &"emacs".to_string(),
+        &vec![format!("--daemon={}", daemon_name)],
+    )
 }
 // TODO: (above) look into std::process::Command::{current_dir, envs}
 
@@ -165,3 +154,5 @@ pub(crate) fn kill_by_name(name: &str) -> Result<Pid, std::io::Error> {
 pub(crate) fn kill_all() -> Vec<Result<Pid, std::io::Error>> {
     get_all().iter().map(|daemon| daemon.kill()).collect()
 }
+
+

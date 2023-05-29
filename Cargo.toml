@@ -3,24 +3,27 @@ name = "eud"
 version = "0.1.0"
 edition = "2021"
 
-[[bin]]
-name = "eud"
-path = "src/main.rs"
+[workspace]
+members = ["standard_styled"]
 
 [lib]
 name = "eud"
 path = "src/lib/mod.rs"
 
-[build]
-rustflags = ["-Clink-arg=-fuse-ld=lld"]
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[[bin]]
+name = "eud"
+path = "src/main.rs"
 
 [dependencies]
 clap = { version = "4.2.1", features=[ "derive" ] }
+colored = "2.0.0"
 config = "0.13.3"
+dirs = "5.0.0"
 sysinfo = "0.28.4"
+standard_styled = { path = "./standard_styled/", version = "0.1.0" }
+tokio = { version = "1.27.0", features = [ "io-util", "io-std", "macros", "process", "rt-multi-thread", "time" ] }
 
 
-# stuff you need:
-# nix-shell -p pkgs.darwin.IOKit
-# wtf.
+[build]
+rustflags = ["-Clink-arg=-fuse-ld=lld"]
+
