@@ -50,7 +50,8 @@ enum Commands {
         file: Option<PathBuf>,
     },
 
-    /// print directory location for daemon socket files (can be passed to Emacs' `server-socket-dir' variable)
+    /// print directory location for daemon socket files
+    /// (can be passed to Emacs' `server-socket-dir' variable)
     #[command()]
     ServerSocketDirPath
 }
@@ -72,7 +73,14 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
             // default name) already exists (whether in `eud's
             // `server_socket_dir` location or otherwise)
             match daemons::active_daemons_names().contains(&name_or_default) {
-                true => println!("A daemon with name '{name_or_default}' is already running. If you wish to connect to it, try:\n    `eud connect {name_or_default} [FILE]`"),
+                true => {
+                    let msg = concat!(
+                        "A daemon with name '{name_or_default}' is already running. ",
+                        "If you wish to connect to it, try:\n",
+                        "    `eud connect {name_or_default} [FILE]`",
+                    );
+                    println!("{}", msg);
+                },
                 false => {
                     tokio::runtime::Builder::new_multi_thread()
                         .enable_all()
@@ -82,7 +90,9 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
                             let cmd = daemons::build_new(name, config);
                             match standard_styled(cmd, config.style()).await {
                                 Ok(_) => (),
-                                Err(e) => eprintln!("Tokio error from `standard_styled: {e}"),
+                                Err(e) => eprintln!(
+                                    "Tokio error from `standard_styled: {e}"
+                                ),
                             }
                         })
                 }
