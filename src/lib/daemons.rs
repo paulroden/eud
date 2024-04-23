@@ -69,18 +69,16 @@ impl DaemonProcess {
     }
 
     pub(crate) fn show(&self, config: &Config) -> String {
-        format!(
-            "{:<14} [{}, {}]",
-            self.socket_name,
-            format!("Pid: {:>8}", format!("{}", self.pid)),
-            format!(
-                "Socket: {:<30} ",
-                self.socket_file(config)
-                    .expect("problem with socket file...")  // this exception can be reached if an emacs daemon process continues but the socket has been closed... why/how/handle?
-                    .to_str()
-                    .expect("path has invalid chars")
-            ),
-        )
+        let socket_name_fmt = format!("{:<14}", self.socket_name);
+        let pid_fmt = format!("Pid: {:>8}", format!("{}", self.pid));
+        let socket_fmt = format!(
+            "Socket: {:<30} ",
+            self.socket_file(config)
+                .expect("problem with socket file...")  // this exception can be reached if an emacs daemon process continues but the socket has been closed... why/how/handle?
+                .to_str()
+                .expect("path has invalid chars")
+        );
+        format!("{socket_name_fmt} [{pid_fmt}, {socket_fmt}]")
     }
 
     pub(crate) fn socket_file(
@@ -114,8 +112,7 @@ pub(crate) fn get_all() -> Vec<DaemonProcess> {
                 || false,
                 |args| args.contains("daemon"))
         )
-        .map(|p| DaemonProcess::from_sys_process(p))
-        .flatten()
+        .filter_map(DaemonProcess::from_sys_process)
         .collect()
 }
 
@@ -131,10 +128,14 @@ pub(crate) fn build_new(
         Some(name) => name.clone(),
         None => config.default_socket_name().clone(),
     };
-    CommandParts::new(
-        &"emacs".to_string(),
-        &vec![format!("--daemon={}", daemon_name)],
-    )
+    {
+        let program = &"emacs".to_string();
+        let args = &vec![format!("--daemon={}", daemon_name)];
+        CommandParts {
+            program: program.into(),
+            args: args.clone(),
+        }
+    }
 }
 // TODO: (above) look into std::process::Command::{current_dir, envs}
 
@@ -154,5 +155,3 @@ pub(crate) fn kill_by_name(name: &str) -> Result<Pid, std::io::Error> {
 pub(crate) fn kill_all() -> Vec<Result<Pid, std::io::Error>> {
     get_all().iter().map(|daemon| daemon.kill()).collect()
 }
-
-

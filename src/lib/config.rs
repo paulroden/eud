@@ -12,14 +12,11 @@ pub struct Config {
     style: Style,
 }
 
-impl Config {
-    pub fn alternative_editor(&self) -> &String {
-        &self.editor
-    }
-    pub fn default() -> std::io::Result<Self> {
+impl Default for Config {
+    fn default() -> Self {
         let server_socket_dir = create_server_socket_dir(
             "~/.emacs.d/sockets/"  // CAUTION: hardcoded (but intentionally)
-        )?;
+        ).expect("Could not create socket directory at `~/.emacs.d/sockets/` .");
 
         let default_style = Style {
             spinner: vec![
@@ -35,14 +32,21 @@ impl Config {
             message_style: Box::new(|s: &str| s.bold().truecolor(127, 90, 182) ),
             end_message: Some(" Launched Emacs daemon  🚀 ".to_string()),
         };
-        
-        Ok(Self {
+
+        Self {
             default_socket: "server".to_string(),
             server_socket_dir,
             editor: "nano".to_string(),
             style: default_style,
-        })
+        }
     }
+}
+
+impl Config {
+    pub fn alternative_editor(&self) -> &String {
+        &self.editor
+    }
+
     pub fn default_socket_name(&self) -> &String {
         &self.default_socket
     }
@@ -68,14 +72,14 @@ impl Config {
 }
 
 
-fn expand_tilde_as_home<'p, P: AsRef<Path>>(path: &'p P) -> Cow<'p, Path> {
+fn expand_tilde_as_home<P: AsRef<Path>>(path: &P) -> Cow<Path> {
     let path = path.as_ref();
 
     match path.starts_with("~") {
         true => dirs::home_dir()
             .expect("Error: unable to determine home directory (~) for operating system.")
             // unwrap should be unreachable here since this match arm follows `.starts_with("~")`
-            .join(path.strip_prefix("~").unwrap())  
+            .join(path.strip_prefix("~").unwrap())
             .into(),
         false => path.into()
     }
@@ -103,6 +107,6 @@ where
     let mut perms = fs::metadata(&server_socket_dir)?.permissions();
     perms.set_mode(0o700);
     fs::set_permissions(&server_socket_dir, perms)?;
-    
+
     Ok(server_socket_dir)
 }

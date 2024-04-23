@@ -92,18 +92,16 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
             if *all {
                 for result in daemons::kill_all() {
                     match result {
-                        Ok(pid) => println!("Killed Emacs daemon with Pid {}", pid),
+                        Ok(pid) => println!("Killed Emacs daemon with Pid {pid}"),
                         Err(e) => eprintln!("Error trying to kill Emacs daemon process:\n{e}"),
                     }
                 }
-            } else {
-                if let Some(name) = daemon_name {
-                    match daemons::kill_by_name(name) {
-                        Ok(pid) => println!("Killed Emacs daemon '{name}' [Pid: {pid} ]"),
-                        Err(e) => {
-                            eprintln!("{}", e);
-                            list_daemons(&config)?;
-                        }
+            } else if let Some(name) = daemon_name {
+                match daemons::kill_by_name(name) {
+                    Ok(pid) => println!("Killed Emacs daemon '{name}' [Pid: {pid} ]"),
+                    Err(e) => {
+                        eprintln!("{}", e);
+                        list_daemons(config)?;
                     }
                 }
             }
@@ -114,7 +112,7 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
             output_here,
         } => {
             let visit_file = file.clone().unwrap_or(std::env::current_dir()?);
-            match client::connect(daemon, visit_file, output_here, &config) {
+            match client::connect(daemon, visit_file, *output_here, config) {
                 Ok(client) => {
                     println!("Launching Emacs client connected to '{}' .", daemon);
                     match output_here {
@@ -150,14 +148,14 @@ pub fn list_daemons(config: &Config) -> Result<(), std::io::Error> {
         _ => {
             println!("Current Emacs daemon instances:");
             extant_daemons.iter().for_each(|daemon| {
-                println!("{}", daemon.show(&config));
+                println!("{}", daemon.show(config));
             });
         }
     }
     Ok(())
 }
 
-pub fn list_daemons_short() -> () {
+pub fn list_daemons_short() {
     daemons::active_daemons_names()
         .iter()
         .for_each(|name| println!("{name}"))

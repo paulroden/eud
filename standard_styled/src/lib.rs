@@ -16,8 +16,8 @@ pub use colored::Colorize; // re-exported for creation of styles (TODO: develop 
 #[derive(Clone)]
 pub struct CommandParts
 {
-    program: String,
-    args: Vec<String>,
+    pub program: String,
+    pub args: Vec<String>,
 }
 
 impl CommandParts {
@@ -25,20 +25,20 @@ impl CommandParts {
         self.args.iter()
     }
 
-    pub fn new(program: &String, args: &Vec<String>) -> Self {
+    pub fn new(program: &String, args: &[String]) -> Self {
         Self {
             program: program.into(),
-            args: args.clone(),
+            args: args.into(),
         }
     }
-    
+
     pub fn program(&self) -> String {
         self.program.clone()
     }
 
     pub fn build(&self) -> Command {
         let mut cmd = Command::new(&self.program);
-        cmd.args(self.args().into_iter());
+        cmd.args(self.args());
         cmd
     }
 }
@@ -68,7 +68,7 @@ impl Style {
             end_message,
         }
     }
-    
+
     pub fn spinner_frame(&self, k: usize) -> String {
         let n = self.spinner.len();
         let frame = k % n;
@@ -107,7 +107,7 @@ impl<'s> View<'s> {
             styled_msg,
         )
     }
-    
+
     fn get_frame(&self) -> String {
         let count = self.ticker.load(Ordering::SeqCst);
         self.style.spinner_frame(count)
@@ -124,7 +124,7 @@ impl<'s> View<'s> {
         print!("\r");
         std::io::stdout().flush().expect("cannot flush stdout");
     }
-    
+
     fn show_end_message(&self) {
         match &self.style.end_message {
             None => (),
@@ -134,7 +134,7 @@ impl<'s> View<'s> {
             }
         }
     }
-    
+
     fn tick(&self) -> usize {
         self.ticker.fetch_add(1, Ordering::SeqCst)
     }
@@ -155,7 +155,7 @@ pub async fn standard_styled(
     command: CommandParts,
     style: &Style
 ) -> std::io::Result<()> {
-    
+
     let mut child = command.build()
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -163,13 +163,13 @@ pub async fn standard_styled(
 
     let child_stdout = child.stdout.take().expect("no stdout!"); // TODO, create or don't based on take() -> Some() | None
     let child_stderr = child.stderr.take().expect("no stderr!"); // ibid.
-    
+
     let mut stderr_reader = BufReader::new(child_stderr).lines();
     let mut stdout_reader = BufReader::new(child_stdout).lines();
 
     let mut view = View::with_style(style);
     view.print();
-    
+
     loop {
         tokio::select! {
             result = stdout_reader.next_line() => {
@@ -201,7 +201,7 @@ pub async fn standard_styled(
 
     // command has completed, play ending message (if there is one)
     view.show_end_message();
-    
+
     Ok(())
 }
 
@@ -215,12 +215,12 @@ mod tests {
     fn command_parts_build_std_command() {
         let cmd = CommandParts::new(
             &"ls".to_string(),
-            &vec!["-l".to_string(), "-a".to_string()]
+            &["-l".to_string(), "-a".to_string()]
         ).build();
         // note, `Command` from std library used here; tokio's `Command`
         // is an async wrapper around std `Command`
         let cmd = cmd.as_std();
-        
+
         assert_eq!(cmd.get_program(), "ls");
         assert_eq!(
             cmd.get_args().collect::<Vec<&OsStr>>(),
@@ -233,10 +233,10 @@ mod tests {
     async fn test_stdout_out_only() {
         let mut echo = CommandParts::new(
             &"echo".to_string(),
-            &vec!["abc".to_string()]
+            &["abc".to_string()]
         ).build();
         let output = echo.output().await.unwrap();
-        
+
         assert_eq!(output.stdout, "abc\n".as_bytes());
     }
 
@@ -246,13 +246,10 @@ mod tests {
         // force output to stderr
         let mut subecho = CommandParts::new(
             &"bash".to_string(),
-            &vec![
-                "-c".to_string(),
-                "echo abc >&2".to_string(),
-            ],
+            &["-c".to_string(), "echo abc >&2".to_string()],
         ).build();
         let output = subecho.output().await.unwrap();
-        
+
         assert_eq!(output.stderr, "abc\n".as_bytes());
     }
 }
