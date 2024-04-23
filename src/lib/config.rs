@@ -104,5 +104,5 @@ where
     perms.set_mode(0o700);
     fs::set_permissions(&server_socket_dir, perms)?;
     
-    Ok(server_socket_dir)   
+    Ok(server_socket_dir)
 }
