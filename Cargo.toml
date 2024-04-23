@@ -1,6 +1,6 @@
 [package]
 name = "eud"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 
 [workspace]
@@ -15,7 +15,7 @@ name = "eud"
 path = "src/main.rs"
 
 [dependencies]
-clap = { version = "4.5.4", features = ["derive"] }
+clap = { version = "4.5.4", features = ["cargo", "derive"] }
 colored = "2.0.0"
 config = "0.13.3"
 dirs = "5.0.0"
