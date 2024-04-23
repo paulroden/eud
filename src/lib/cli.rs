@@ -1,24 +1,21 @@
-use std::path::PathBuf;
-use clap::{Parser, Subcommand};
-use standard_styled::standard_styled;
+use super::client;
 use super::config::Config;
 use super::daemons;
-use super::client;
-
-
+use clap::{Parser, Subcommand};
+use standard_styled::standard_styled;
+use std::path::PathBuf;
 
 #[derive(Debug, Parser)]
 #[command(name = "eud")]
 #[command(about = "manage Emacs clients and daemons", long_about = None)]
+#[command(version, about, long_about = None, short_flag = 'v')]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
 }
 
-
 #[derive(Debug, Subcommand)]
 enum Commands {
-    
     /// list active daemons
     #[command()]
     List {
@@ -29,9 +26,7 @@ enum Commands {
 
     /// launch new daemon
     #[command()]
-    New {
-        name: Option<String>,
-    },
+    New { name: Option<String> },
 
     /// kill daemon with socket NAME, or kill all active daemons with --all
     #[command(arg_required_else_help = true)]
@@ -40,7 +35,7 @@ enum Commands {
         all: bool,
         daemon_name: Option<String>,
     },
-    
+
     /// connect Emacs client to daemon; visits path at FILE
     #[command(arg_required_else_help = true)]
     Connect {
@@ -48,27 +43,26 @@ enum Commands {
         daemon: String,
         #[arg(required = false)]
         file: Option<PathBuf>,
+        /// whether to send stdout/stderr back to the terminal
+        /// note: if true, this will leave `eud connect` as a background job
+        #[arg(required = false, short = 'z', default_value_t = false)]
+        output_here: bool,
     },
 
     /// print directory location for daemon socket files
     /// (can be passed to Emacs' `server-socket-dir' variable)
     #[command()]
-    ServerSocketDirPath
+    ServerSocketDirPath,
 }
 
-
 pub fn cli(config: &Config) -> Result<(), std::io::Error> {
-
     match &Cli::parse().command {
-        Commands::List { short } => {
-            match short {
-                true  => list_daemons_short(),
-                false => list_daemons(&config)?,
-            }
+        Commands::List { short } => match short {
+            true => list_daemons_short(),
+            false => list_daemons(config)?,
         },
-        Commands::New{ name } => {
-            let name_or_default = name.clone()
-                .unwrap_or(config.default_socket_name().clone());
+        Commands::New { name } => {
+            let name_or_default = name.clone().unwrap_or(config.default_socket_name().clone());
             // first check if a daemon with the same socket name (or the
             // default name) already exists (whether in `eud's
             // `server_socket_dir` location or otherwise)
@@ -80,32 +74,26 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
                         "    `eud connect {name_or_default} [FILE]`",
                     );
                     println!("{}", msg);
-                },
-                false => {
-                    tokio::runtime::Builder::new_multi_thread()
-                        .enable_all()
-                        .build()?
-                        .block_on(async {
-                            let name = name.clone();
-                            let cmd = daemons::build_new(name, config);
-                            match standard_styled(cmd, config.style()).await {
-                                Ok(_) => (),
-                                Err(e) => eprintln!(
-                                    "Tokio error from `standard_styled: {e}"
-                                ),
-                            }
-                        })
                 }
+                false => tokio::runtime::Builder::new_multi_thread()
+                    .enable_all()
+                    .build()?
+                    .block_on(async {
+                        let name = name.clone();
+                        let cmd = daemons::build_new(name, config);
+                        match standard_styled(cmd, config.style()).await {
+                            Ok(_) => (),
+                            Err(e) => eprintln!("Tokio error from `standard_styled: {e}"),
+                        }
+                    }),
             }
-        },
-        Commands::Kill{ all, daemon_name } => {
+        }
+        Commands::Kill { all, daemon_name } => {
             if *all {
                 for result in daemons::kill_all() {
                     match result {
                         Ok(pid) => println!("Killed Emacs daemon with Pid {}", pid),
-                        Err(e)  => eprintln!(
-                            "Error trying to kill Emacs daemon process:\n{e}"
-                        ),
+                        Err(e) => eprintln!("Error trying to kill Emacs daemon process:\n{e}"),
                     }
                 }
             } else {
@@ -115,37 +103,45 @@ pub fn cli(config: &Config) -> Result<(), std::io::Error> {
                         Err(e) => {
                             eprintln!("{}", e);
                             list_daemons(&config)?;
-                        },
+                        }
                     }
                 }
             }
-        },
-        Commands::Connect{ daemon, file } => {
+        }
+        Commands::Connect {
+            daemon,
+            file,
+            output_here,
+        } => {
             let visit_file = file.clone().unwrap_or(std::env::current_dir()?);
-            match client::connect(daemon, visit_file, &config) {
+            match client::connect(daemon, visit_file, output_here, &config) {
                 Ok(client) => {
-                    println!("Launching Emacs client connected to '{}' ...", daemon);
-                    let output = client
-                        .wait_with_output().expect("what? no outputs??");
-                    println!(
-                        "stdout:\n{}\n",
-                        String::from_utf8_lossy(output.stdout.as_slice())
-                    );
-                    println!(
-                        "stderr:\n{}",
-                        String::from_utf8_lossy(output.stderr.as_slice())
-                    );
-                },
+                    println!("Launching Emacs client connected to '{}' .", daemon);
+                    match output_here {
+                        false => (),
+                        true => {
+                            print!("...");
+                            let output = client.wait_with_output().expect("what? no outputs??");
+                            println!(
+                                "stdout:\n{}\n",
+                                String::from_utf8_lossy(output.stdout.as_slice())
+                            );
+                            eprintln!(
+                                "stderr:\n{}",
+                                String::from_utf8_lossy(output.stderr.as_slice())
+                            );
+                        }
+                    };
+                }
                 Err(e) => eprint!("Error launching client:\n{e}"),
             }
-        },
+        }
         Commands::ServerSocketDirPath => {
             print!("{}", config.server_socket_dir().display());
         }
     }
     Ok(())
 }
-
 
 pub fn list_daemons(config: &Config) -> Result<(), std::io::Error> {
     let extant_daemons = daemons::get_all();
@@ -162,8 +158,7 @@ pub fn list_daemons(config: &Config) -> Result<(), std::io::Error> {
 }
 
 pub fn list_daemons_short() -> () {
-    daemons::active_daemons_names().iter()
+    daemons::active_daemons_names()
+        .iter()
         .for_each(|name| println!("{name}"))
 }
-
-
