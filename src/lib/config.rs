@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::env;
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
@@ -6,6 +7,8 @@ use standard_styled::{Colorize, Style};
 
 
 pub struct Config {
+    emacs_exec: String,
+    emacs_client_exec: String,
     default_socket: String,
     server_socket_dir: PathBuf,   // c.f. `server-socket-dir' in emacs
     editor: String,
@@ -14,6 +17,10 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Self {
+        let emacs_exec = env::var("EMACS_EXEC")
+            .unwrap_or("emacs".into());
+        let emacs_client_exec = env::var("EMACS_CLIENT_EXEC")
+            .unwrap_or("emacsclient".into());
         let server_socket_dir = create_server_socket_dir(
             "~/.emacs.d/sockets/"  // CAUTION: hardcoded (but intentionally)
         ).expect("Could not create socket directory at `~/.emacs.d/sockets/` .");
@@ -34,6 +41,8 @@ impl Default for Config {
         };
 
         Self {
+            emacs_exec,
+            emacs_client_exec,
             default_socket: "server".to_string(),
             server_socket_dir,
             editor: "nano".to_string(),
@@ -43,6 +52,14 @@ impl Default for Config {
 }
 
 impl Config {
+    pub fn emacs_exec(&self) -> &String {
+        &self.emacs_exec
+    }
+
+    pub fn emacs_client_exec(&self) -> &String {
+        &self.emacs_client_exec
+    }
+
     pub fn alternative_editor(&self) -> &String {
         &self.editor
     }
@@ -51,12 +68,16 @@ impl Config {
         &self.default_socket
     }
     pub fn new(
+        emacs_exec: String,
+        emacs_client_exec: String,
         default_socket: String,
         server_socket_dir: PathBuf,
         editor: String,
         style: Style,
     ) -> Self {
         Self {
+            emacs_exec,
+            emacs_client_exec,
             default_socket,
             server_socket_dir,
             editor,

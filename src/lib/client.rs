@@ -23,10 +23,10 @@ impl ClientProcess {
         }
     }
 
-    fn spawn(&self, pipe_std: bool) -> Result<Child, std::io::Error> {
+    fn spawn(&self, config: &Config, pipe_std: bool) -> Result<Child, std::io::Error> {
         let out_pipe =
             |pipe_std| if pipe_std { Stdio::piped() } else { Stdio::null() };
-        Command::new("emacsclient")
+        Command::new(config.emacs_client_exec())
             .arg(match &self.create_new_frame {
                 true => "--create-frame",
                 false => "--reuse-frame",
@@ -58,7 +58,7 @@ pub fn connect(
             let file_path = file.into();
             match file_path.exists() {
                 true => ClientProcess::with_daemon(socket, file_path)
-                    .spawn(pipe_std),
+                    .spawn(config, pipe_std),
                 false => Err(std::io::Error::new(
                     std::io::ErrorKind::NotFound,
                     format!("File path {} does not exist.", file_path.display()),

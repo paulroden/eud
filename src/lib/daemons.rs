@@ -129,7 +129,8 @@ pub(crate) fn build_new(
         None => config.default_socket_name().clone(),
     };
     {
-        let program = &"emacs".to_string();
+        // "/nix/store/2ald91hw1y9dbwwrc6757mnq9i5i99p0-emacs-29.3/Applications/Emacs.app/Contents/MacOS/Emacs"
+        let program = config.emacs_exec();
         let args = &vec![format!("--daemon={}", daemon_name)];
         CommandParts {
             program: program.into(),
