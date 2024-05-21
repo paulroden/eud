@@ -1,6 +1,6 @@
 [package]
 name = "eud"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 
 [workspace]
@@ -26,4 +26,3 @@ tokio = { version = "1.27.0", features = [ "io-util", "io-std", "macros", "proce
 
 [build]
 rustflags = ["-Clink-arg=-fuse-ld=lld"]
-
