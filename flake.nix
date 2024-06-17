@@ -32,7 +32,7 @@
           ];
         };
 
-        my-crate = craneLib.buildPackage (commonArgs // {
+        eudaemon-crate = craneLib.buildPackage (commonArgs // {
           cargoArtifacts = craneLib.buildDepsOnly commonArgs;
 
           # Additional environment variables or build phases/hooks can be set
@@ -42,13 +42,13 @@
       in
       {
         checks = {
-          inherit my-crate;
+          inherit eudaemon-crate;
         };
 
-        packages.default = my-crate;
+        packages.default = eudaemon-crate;
 
         apps.default = flake-utils.lib.mkApp {
-          drv = my-crate;
+          drv = eudaemon-crate;
         };
 
         devShells.default = craneLib.devShell {
